@@ -1,18 +1,21 @@
-from sqlalchemy import Column, Integer, String, Float, Enum as PyEnum, ForeignKey, Boolean
+from sqlalchemy import Column, Integer, String, Float, Enum as PyEnum, ForeignKey
 from sqlalchemy.orm import relationship, declarative_base
 import enum
 
 Base = declarative_base()
+
 
 class ApplicationStatus(str, enum.Enum):
     PENDING = "pending"
     APPROVED = "approved"
     REJECTED = "rejected"
 
+
 class VoteOption(str, enum.Enum):
     APPROVE = "approve"
     REJECT = "reject"
     ABSTAIN = "abstain"
+
 
 class Application(Base):
     __tablename__ = "applications"
@@ -25,7 +28,9 @@ class Application(Base):
     project_title = Column(String, nullable=False)
     project_description = Column(String, nullable=False)
     costs = Column(Float, nullable=False)
-    status = Column(PyEnum(ApplicationStatus), default=ApplicationStatus.PENDING, nullable=False)
+    status = Column(
+        PyEnum(ApplicationStatus), default=ApplicationStatus.PENDING, nullable=False
+    )
 
     votes = relationship("VoteRecord", back_populates="application")
 

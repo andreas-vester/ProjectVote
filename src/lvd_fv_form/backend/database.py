@@ -3,7 +3,7 @@ from sqlalchemy.orm import sessionmaker
 
 DATABASE_URL = "sqlite+aiosqlite:///./applications.db"
 
-echo = True # Set to False in production
+echo = True  # Set to False in production
 
 engine = create_async_engine(DATABASE_URL, echo=echo)
 
@@ -12,6 +12,7 @@ AsyncSessionLocal = sessionmaker(
     class_=AsyncSession,
     expire_on_commit=False,
 )
+
 
 async def get_db():
     async with AsyncSessionLocal() as session:
