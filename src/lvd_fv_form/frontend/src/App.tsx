@@ -1,35 +1,34 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import React from 'react';
+import { BrowserRouter as Router, Routes, Route, Link as RouterLink } from 'react-router-dom';
+import { Container, Typography, CssBaseline, AppBar, Toolbar, Button } from '@mui/material';
+import ApplicationForm from './components/ApplicationForm';
+import Archive from './components/Archive';
+import VotingForm from './components/VotingForm';
 
 function App() {
-  const [count, setCount] = useState(0)
-
   return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
-  )
+    <Router>
+      <CssBaseline />
+      <AppBar position="static">
+        <Toolbar>
+          <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
+            Förderverein Application Management
+          </Typography>
+          <Button color="inherit" component={RouterLink} to="/">Home</Button>
+          <Button color="inherit" component={RouterLink} to="/new">New Application</Button>
+          <Button color="inherit" component={RouterLink} to="/archive">Archive</Button>
+        </Toolbar>
+      </AppBar>
+      <Container component="main" sx={{ mt: 4, mb: 4 }}>
+        <Routes>
+          <Route path="/" element={<Typography>Welcome to the application management system.</Typography>} />
+          <Route path="/new" element={<ApplicationForm />} />
+          <Route path="/archive" element={<Archive />} />
+          <Route path="/vote/:token" element={<VotingForm />} />
+        </Routes>
+      </Container>
+    </Router>
+  );
 }
 
-export default App
+export default App;
