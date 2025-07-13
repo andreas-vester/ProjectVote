@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import {
   Container,
@@ -7,6 +7,9 @@ import {
   Button,
   Box,
   Paper,
+  Snackbar,
+  Alert,
+  CircularProgress,
 } from '@mui/material';
 import Grid from '@mui/material/Grid';
 
@@ -21,22 +24,73 @@ const ApplicationForm: React.FC = () => {
     costs: '',
   });
 
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const [snackbar, setSnackbar] = useState<{
+    open: boolean;
+    message: string;
+    severity: 'success' | 'error';
+  } | null>(null);
+
+  const validate = (name: string, value: string) => {
+    let error = '';
+    if (!value) {
+      error = 'Dieses Feld ist ein Pflichtfeld';
+    } else if (name === 'applicant_email' && !/\S+@\S+\.\S+/.test(value)) {
+      error = 'Ungültige E-Mail-Adresse';
+    } else if (name === 'costs' && parseFloat(value) <= 0) {
+      error = 'Die Kosten müssen eine positive Zahl sein';
+    }
+    return error;
+  };
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData((prevData) => ({
       ...prevData,
       [name]: value,
     }));
+    const error = validate(name, value);
+    setErrors((prevErrors) => ({
+      ...prevErrors,
+      [name]: error,
+    }));
+  };
+
+  const handleCloseSnackbar = () => {
+    setSnackbar(null);
   };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    setIsSubmitting(true);
+
+    const newErrors: Record<string, string> = {};
+    Object.entries(formData).forEach(([key, value]) => {
+      const error = validate(key, value);
+      if (error) {
+        newErrors[key] = error;
+      }
+    });
+
+    setErrors(newErrors);
+
+    if (Object.keys(newErrors).length > 0) {
+      setIsSubmitting(false);
+      return;
+    }
+
     try {
       const response = await axios.post('http://localhost:8001/applications', {
         ...formData,
         costs: parseFloat(formData.costs) || 0,
       });
-      alert('Application submitted successfully!');
+      setSnackbar({
+        open: true,
+        message: 'Antrag erfolgreich eingereicht!',
+        severity: 'success',
+      });
       console.log(response.data);
       // Clear the form
       setFormData({
@@ -49,8 +103,14 @@ const ApplicationForm: React.FC = () => {
         costs: '',
       });
     } catch (error) {
-      console.error('Error submitting application:', error);
-      alert('Failed to submit application. Please check the console for details.');
+      console.error('Fehler beim Einreichen des Antrags:', error);
+      setSnackbar({
+        open: true,
+        message: 'Fehler beim Einreichen des Antrags. Bitte die Konsole prüfen.',
+        severity: 'error',
+      });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -58,7 +118,7 @@ const ApplicationForm: React.FC = () => {
     <Container maxWidth="md">
       <Paper elevation={3} sx={{ p: 4, mt: 4 }}>
         <Typography variant="h4" component="h1" gutterBottom>
-          New Funding Application
+          Neuer Förderantrag
         </Typography>
         <Box component="form" onSubmit={handleSubmit} noValidate sx={{ mt: 1 }}>
           <Grid container spacing={2}>
@@ -68,10 +128,12 @@ const ApplicationForm: React.FC = () => {
                 required
                 fullWidth
                 id="first_name"
-                label="First Name"
+                label="Vorname"
                 autoFocus
                 value={formData.first_name}
                 onChange={handleChange}
+                error={!!errors.first_name}
+                helperText={errors.first_name}
               />
             </Grid>
             <Grid xs={12} sm={6}>
@@ -79,10 +141,12 @@ const ApplicationForm: React.FC = () => {
                 required
                 fullWidth
                 id="last_name"
-                label="Last Name"
+                label="Nachname"
                 name="last_name"
                 value={formData.last_name}
                 onChange={handleChange}
+                error={!!errors.last_name}
+                helperText={errors.last_name}
               />
             </Grid>
             <Grid xs={12}>
@@ -90,11 +154,13 @@ const ApplicationForm: React.FC = () => {
                 required
                 fullWidth
                 id="applicant_email"
-                label="Email Address"
+                label="E-Mail-Adresse"
                 name="applicant_email"
                 type="email"
                 value={formData.applicant_email}
                 onChange={handleChange}
+                error={!!errors.applicant_email}
+                helperText={errors.applicant_email}
               />
             </Grid>
             <Grid xs={12}>
@@ -102,10 +168,12 @@ const ApplicationForm: React.FC = () => {
                 required
                 fullWidth
                 id="department"
-                label="Department"
+                label="Abteilung/Fachschaft"
                 name="department"
                 value={formData.department}
                 onChange={handleChange}
+                error={!!errors.department}
+                helperText={errors.department}
               />
             </Grid>
             <Grid xs={12}>
@@ -113,10 +181,12 @@ const ApplicationForm: React.FC = () => {
                 required
                 fullWidth
                 id="project_title"
-                label="Project Title"
+                label="Projekttitel"
                 name="project_title"
                 value={formData.project_title}
                 onChange={handleChange}
+                error={!!errors.project_title}
+                helperText={errors.project_title}
               />
             </Grid>
             <Grid xs={12}>
@@ -124,12 +194,14 @@ const ApplicationForm: React.FC = () => {
                 required
                 fullWidth
                 name="project_description"
-                label="Project Description"
+                label="Projektbeschreibung"
                 id="project_description"
                 multiline
                 rows={4}
                 value={formData.project_description}
                 onChange={handleChange}
+                error={!!errors.project_description}
+                helperText={errors.project_description}
               />
             </Grid>
             <Grid xs={12}>
@@ -137,11 +209,13 @@ const ApplicationForm: React.FC = () => {
                 required
                 fullWidth
                 name="costs"
-                label="Estimated Costs (€)"
+                label="Geschätzte Kosten (€)"
                 type="number"
                 id="costs"
                 value={formData.costs}
                 onChange={handleChange}
+                error={!!errors.costs}
+                helperText={errors.costs}
               />
             </Grid>
           </Grid>
@@ -150,11 +224,28 @@ const ApplicationForm: React.FC = () => {
             fullWidth
             variant="contained"
             sx={{ mt: 3, mb: 2 }}
+            disabled={isSubmitting}
           >
-            Submit Application
+            {isSubmitting ? <CircularProgress size={24} /> : 'Antrag einreichen'}
           </Button>
         </Box>
       </Paper>
+      {snackbar && (
+        <Snackbar
+          open={snackbar.open}
+          autoHideDuration={6000}
+          onClose={handleCloseSnackbar}
+          anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+        >
+          <Alert
+            onClose={handleCloseSnackbar}
+            severity={snackbar.severity}
+            sx={{ width: '100%' }}
+          >
+            {snackbar.message}
+          </Alert>
+        </Snackbar>
+      )}
     </Container>
   );
 };

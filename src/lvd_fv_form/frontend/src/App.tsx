@@ -12,16 +12,16 @@ function App() {
       <AppBar position="static">
         <Toolbar>
           <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
-            Förderverein Application Management
+            Förderverein Antragsverwaltung
           </Typography>
-          <Button color="inherit" component={RouterLink} to="/">Home</Button>
-          <Button color="inherit" component={RouterLink} to="/new">New Application</Button>
-          <Button color="inherit" component={RouterLink} to="/archive">Archive</Button>
+          <Button color="inherit" component={RouterLink} to="/">Startseite</Button>
+          <Button color="inherit" component={RouterLink} to="/new">Neuer Antrag</Button>
+          <Button color="inherit" component={RouterLink} to="/archive">Archiv</Button>
         </Toolbar>
       </AppBar>
       <Container component="main" sx={{ mt: 4, mb: 4 }}>
         <Routes>
-          <Route path="/" element={<Typography>Welcome to the application management system.</Typography>} />
+          <Route path="/" element={<Typography>Willkommen bei der Antragsverwaltung.</Typography>} />
           <Route path="/new" element={<ApplicationForm />} />
           <Route path="/archive" element={<Archive />} />
           <Route path="/vote/:token" element={<VotingForm />} />

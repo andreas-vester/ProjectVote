@@ -22,7 +22,9 @@ test_db_filename = DATABASE_URL.split("///")[-1].replace(
     ".db", "_test.db"
 )  # Extract only the filename
 test_db_path = Path(test_db_filename)  # Use Path
-test_engine = create_async_engine(DATABASE_URL.replace(".db", "_test.db"), echo=False)
+test_engine = create_async_engine(
+    f"sqlite+aiosqlite:///./{test_db_filename}", echo=False
+)
 TestSessionLocal = sessionmaker(
     bind=test_engine,
     class_=AsyncSession,

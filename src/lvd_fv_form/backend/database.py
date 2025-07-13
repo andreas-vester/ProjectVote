@@ -1,7 +1,7 @@
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker
 
-DATABASE_URL = "sqlite+aiosqlite:///./applications.db"
+DATABASE_URL = "sqlite+aiosqlite:///./data/applications.db"
 
 echo = True  # Set to False in production
 

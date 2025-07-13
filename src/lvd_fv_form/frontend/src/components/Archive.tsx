@@ -61,17 +61,17 @@ const Row: React.FC<{ application: Application }> = ({ application }) => {
         <TableCell>{application.status}</TableCell>
       </TableRow>
       <TableRow>
-        <TableCell style={{ paddingBottom: 0, paddingTop: 0 }} colSpan={6}>
+        <TableCell style={{ paddingBottom: 0, paddingTop: 0 }} colSpan={7}>
           <Collapse in={open} timeout="auto" unmountOnExit>
             <Box sx={{ margin: 1 }}>
               <Typography variant="h6" gutterBottom component="div">
-                Voting Details
+                Abstimmungsdetails
               </Typography>
               <Table size="small" aria-label="purchases">
                 <TableHead>
                   <TableRow>
-                    <TableCell>Voter Email</TableCell>
-                    <TableCell>Decision</TableCell>
+                    <TableCell>Abstimmende Person</TableCell>
+                    <TableCell>Entscheidung</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -102,7 +102,7 @@ const Archive: React.FC = () => {
         const response = await axios.get<Application[]>('http://localhost:8001/applications');
         setApplications(response.data);
       } catch (err) {
-        setError('Failed to fetch applications.');
+        setError('Fehler beim Abrufen der Anträge.');
         console.error(err);
       } finally {
         setLoading(false);
@@ -125,26 +125,30 @@ const Archive: React.FC = () => {
       <Typography variant="h4" component="h1" gutterBottom sx={{ p: 2 }}>
         Antragsarchiv
       </Typography>
-      <TableContainer>
-        <Table stickyHeader aria-label="sticky table">
-          <TableHead>
-            <TableRow>
-              <TableCell /> {/* For expand button */}
-              <TableCell>ID</TableCell>
-              <TableCell>Antragsteller</TableCell>
-              <TableCell>Projekttitel</TableCell>
-              <TableCell>Fachschaft</TableCell>
-              <TableCell>Kosten</TableCell>
-              <TableCell>Status</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {applications.map((app) => (
-              <Row key={app.id} application={app} />
-            ))}
-          </TableBody>
-        </Table>
-      </TableContainer>
+      {applications.length === 0 ? (
+        <Typography sx={{ p: 2 }}>Bisher wurden keine Anträge gestellt.</Typography>
+      ) : (
+        <TableContainer>
+          <Table stickyHeader aria-label="sticky table">
+            <TableHead>
+              <TableRow>
+                <TableCell /> {/* For expand button */}
+                <TableCell>ID</TableCell>
+                <TableCell>Antragsteller</TableCell>
+                <TableCell>Projekttitel</TableCell>
+                <TableCell>Abteilung/Fachschaft</TableCell>
+                <TableCell>Kosten</TableCell>
+                <TableCell>Status</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {applications.map((app) => (
+                <Row key={app.id} application={app} />
+              ))}
+            </TableBody>
+          </Table>
+        </TableContainer>
+      )}
     </Paper>
   );
 };

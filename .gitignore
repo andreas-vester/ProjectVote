@@ -16,3 +16,5 @@ yarn-error.log
 
 # Test databases
 *_test.db
+
+/data
