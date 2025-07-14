@@ -119,10 +119,25 @@ async def test_create_application(client: AsyncClient, session: AsyncSession):
         assert record.vote_status == VoteStatus.PENDING
 
 
+@pytest.mark.parametrize(
+    "scenario, token_to_use, expected_status_code, expected_detail",
+    [
+        ("Success", "VALID_TOKEN", 200, None),
+        ("Invalid Token", "invalid-token-123", 404, "Invalid or expired token."),
+        ("Vote Already Cast", "ALREADY_CAST_TOKEN", 400, "This vote has already been cast."),
+    ],
+)
 @pytest.mark.asyncio
-async def test_get_vote_details(client: AsyncClient, session: AsyncSession):
-    """Test fetching application details using a valid token."""
-    # Create an application and vote records via the API
+async def test_get_vote_details_scenarios(
+    client: AsyncClient,
+    session: AsyncSession,
+    scenario: str,
+    token_to_use: str,
+    expected_status_code: int,
+    expected_detail: str | None,
+):
+    """Tests fetching vote details under different scenarios."""
+    # --- Setup: Create a base application and a valid token ---
     app_data = {
         "first_name": "Token",
         "last_name": "Test",
@@ -135,45 +150,86 @@ async def test_get_vote_details(client: AsyncClient, session: AsyncSession):
     create_response = await client.post("/applications", json=app_data)
     app_id = create_response.json()["application_id"]
 
-    # Get a token from the created vote records
     result = await session.execute(
         select(VoteRecord).where(VoteRecord.application_id == app_id)
     )
     vote_record = result.scalars().first()
     assert vote_record is not None
+    valid_token = vote_record.token
 
-    response = await client.get(f"/vote/{vote_record.token}")
-    assert response.status_code == 200
-    response_data = response.json()
-    assert response_data["voter_email"] == vote_record.voter_email
-    assert response_data["application"]["project_title"] == app_data["project_title"]
+    # --- Scenario-specific setup ---
+    final_token_to_use = valid_token
+    if token_to_use == "invalid-token-123":
+        final_token_to_use = token_to_use
+    elif token_to_use == "ALREADY_CAST_TOKEN":
+        # Cast the vote first to trigger the error
+        await client.post(f"/vote/{valid_token}", json={"decision": "approve"})
+        final_token_to_use = valid_token
+
+    # --- Act: Perform the request ---
+    response = await client.get(f"/vote/{final_token_to_use}")
+
+    # --- Assert: Check the outcome ---
+    assert response.status_code == expected_status_code
+    if expected_detail:
+        assert response.json() == {"detail": expected_detail}
+    else:
+        # Additional checks for the success case
+        response_data = response.json()
+        assert response_data["voter_email"] == vote_record.voter_email
+        assert response_data["application"]["project_title"] == app_data["project_title"]
 
 
+@pytest.mark.parametrize(
+    "scenario, token_type, vote_decision, expected_status_code, expected_message",
+    [
+        (
+            "Success",
+            "VALID_TOKEN",
+            VoteOption.APPROVE,
+            200,
+            "Vote cast successfully",
+        ),
+        (
+            "Already Cast",
+            "ALREADY_CAST_TOKEN",
+            VoteOption.REJECT,
+            400,
+            "Vote has already been cast.",
+        ),
+        (
+            "Invalid Token",
+            "INVALID_TOKEN",
+            VoteOption.APPROVE,
+            404,
+            "Invalid or expired token.",
+        ),
+    ],
+)
 @pytest.mark.asyncio
-async def test_get_vote_details_invalid_token(client: AsyncClient):
-    """Test fetching details with an invalid token."""
-    response = await client.get("/vote/invalid-token-123")
-    assert response.status_code == 404
-    assert response.json() == {"detail": "Invalid or expired token."}
-
-
-@pytest.mark.asyncio
-async def test_cast_vote_success(client: AsyncClient, session: AsyncSession):
-    """Test casting a vote successfully using a token."""
-    # Create an application and vote records via the API
+async def test_cast_vote_scenarios(
+    client: AsyncClient,
+    session: AsyncSession,
+    scenario: str,
+    token_type: str,
+    vote_decision: VoteOption,
+    expected_status_code: int,
+    expected_message: str,
+):
+    """Tests casting a vote under different scenarios."""
+    # --- Setup: Create a base application and a valid token ---
     app_data = {
         "first_name": "Vote",
-        "last_name": "Success",
-        "applicant_email": "vote.success@example.com",
-        "department": "HR",
-        "project_title": "Team Building",
-        "project_description": "Annual event",
-        "costs": 200.00,
+        "last_name": "Scenario",
+        "applicant_email": "vote.scenario@example.com",
+        "department": "Testing",
+        "project_title": f"Test for {scenario}",
+        "project_description": "A test for casting votes.",
+        "costs": 150.00,
     }
     create_response = await client.post("/applications", json=app_data)
     app_id = create_response.json()["application_id"]
 
-    # Get a token for a board member
     result = await session.execute(
         select(VoteRecord).where(
             VoteRecord.application_id == app_id,
@@ -182,53 +238,33 @@ async def test_cast_vote_success(client: AsyncClient, session: AsyncSession):
     )
     vote_record = result.scalars().first()
     assert vote_record is not None
+    valid_token = vote_record.token
 
-    vote_data = {"decision": VoteOption.APPROVE.value}
-    response = await client.post(f"/vote/{vote_record.token}", json=vote_data)
-    assert response.status_code == 200
-    assert response.json() == {"message": "Vote cast successfully"}
+    # --- Scenario-specific setup ---
+    final_token_to_use = valid_token
+    if token_type == "INVALID_TOKEN":
+        final_token_to_use = "invalid-token-123"
+    elif token_type == "ALREADY_CAST_TOKEN":
+        # Cast the vote first to trigger the "already cast" error
+        await client.post(f"/vote/{valid_token}", json={"decision": VoteOption.APPROVE.value})
+        final_token_to_use = valid_token
 
-    # Verify vote record was updated
-    await session.refresh(vote_record)
-    assert vote_record.vote == VoteOption.APPROVE
-    assert vote_record.vote_status == VoteStatus.CAST
-
-
-@pytest.mark.asyncio
-async def test_cast_vote_already_cast(client: AsyncClient, session: AsyncSession):
-    """Test that a vote cannot be cast twice with the same token."""
-    # Create an application and vote records via the API
-    app_data = {
-        "first_name": "Double",
-        "last_name": "Vote",
-        "applicant_email": "double.vote@example.com",
-        "department": "Finance",
-        "project_title": "Budget Review",
-        "project_description": "Quarterly review",
-        "costs": 50.00,
-    }
-    create_response = await client.post("/applications", json=app_data)
-    app_id = create_response.json()["application_id"]
-
-    # Get a token
-    result = await session.execute(
-        select(VoteRecord).where(
-            VoteRecord.application_id == app_id,
-            VoteRecord.voter_email == TEST_BOARD_MEMBERS[0],
-        )
+    # --- Act: Perform the request ---
+    response = await client.post(
+        f"/vote/{final_token_to_use}", json={"decision": vote_decision.value}
     )
-    vote_record = result.scalars().first()
-    assert vote_record is not None
 
-    # Cast first vote
-    vote_data = {"decision": VoteOption.REJECT.value}
-    response1 = await client.post(f"/vote/{vote_record.token}", json=vote_data)
-    assert response1.status_code == 200
+    # --- Assert: Check the outcome ---
+    assert response.status_code == expected_status_code
+    if expected_status_code == 200:
+        assert response.json() == {"message": expected_message}
+        # Verify vote record was updated for success case
+        await session.refresh(vote_record)
+        assert vote_record.vote == vote_decision
+        assert vote_record.vote_status == VoteStatus.CAST
+    else:
+        assert response.json() == {"detail": expected_message}
 
-    # Try to cast again with the same token
-    response2 = await client.post(f"/vote/{vote_record.token}", json=vote_data)
-    assert response2.status_code == 400
-    assert response2.json() == {"detail": "Vote has already been cast."}
 
 
 @pytest.mark.parametrize(
