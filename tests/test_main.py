@@ -6,7 +6,7 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy import select
 from pathlib import Path  # Import Path
 
-from lvd_fv_form.backend.main import app, BOARD_MEMBERS
+from lvd_fv_form.backend.main import app, get_board_members
 from lvd_fv_form.backend.database import get_db, DATABASE_URL
 from lvd_fv_form.backend.models import (
     Base,
@@ -16,6 +16,14 @@ from lvd_fv_form.backend.models import (
     VoteRecord,
     VoteStatus,
 )
+
+# Define a separate set of board members for testing
+TEST_BOARD_MEMBERS = [
+    "test.member1@example.com",
+    "test.member2@example.com",
+    "test.member3@example.com",
+    "test.member4@example.com",
+]
 
 # Setup a test database engine
 test_db_filename = DATABASE_URL.split("///")[-1].replace(
@@ -57,7 +65,11 @@ async def client_fixture(session: AsyncSession):
     async def get_test_db():
         yield session
 
+    def get_test_board_members():
+        return TEST_BOARD_MEMBERS
+
     app.dependency_overrides[get_db] = get_test_db
+    app.dependency_overrides[get_board_members] = get_test_board_members
 
     from httpx import ASGITransport
 
@@ -101,7 +113,7 @@ async def test_create_application(client: AsyncClient, session: AsyncSession):
         )
     )
     vote_records = result.scalars().all()
-    assert len(vote_records) == len(BOARD_MEMBERS)
+    assert len(vote_records) == len(TEST_BOARD_MEMBERS)
     for record in vote_records:
         assert record.token is not None
         assert record.vote_status == VoteStatus.PENDING
@@ -165,7 +177,7 @@ async def test_cast_vote_success(client: AsyncClient, session: AsyncSession):
     result = await session.execute(
         select(VoteRecord).where(
             VoteRecord.application_id == app_id,
-            VoteRecord.voter_email == BOARD_MEMBERS[0],
+            VoteRecord.voter_email == TEST_BOARD_MEMBERS[0],
         )
     )
     vote_record = result.scalars().first()
@@ -202,7 +214,7 @@ async def test_cast_vote_already_cast(client: AsyncClient, session: AsyncSession
     result = await session.execute(
         select(VoteRecord).where(
             VoteRecord.application_id == app_id,
-            VoteRecord.voter_email == BOARD_MEMBERS[0],
+            VoteRecord.voter_email == TEST_BOARD_MEMBERS[0],
         )
     )
     vote_record = result.scalars().first()
@@ -219,18 +231,59 @@ async def test_cast_vote_already_cast(client: AsyncClient, session: AsyncSession
     assert response2.json() == {"detail": "Vote has already been cast."}
 
 
+@pytest.mark.parametrize(
+    "scenario, votes, expected_status",
+    [
+        (
+            "3/4 Approve -> APPROVED",
+            [
+                VoteOption.APPROVE,
+                VoteOption.APPROVE,
+                VoteOption.APPROVE,
+                VoteOption.REJECT,
+            ],
+            ApplicationStatus.APPROVED,
+        ),
+        (
+            "2/4 Approve (Tie) -> REJECTED",
+            [
+                VoteOption.APPROVE,
+                VoteOption.APPROVE,
+                VoteOption.REJECT,
+                VoteOption.REJECT,
+            ],
+            ApplicationStatus.REJECTED,
+        ),
+        (
+            "1/4 Approve -> REJECTED",
+            [
+                VoteOption.APPROVE,
+                VoteOption.REJECT,
+                VoteOption.REJECT,
+                VoteOption.REJECT,
+            ],
+            ApplicationStatus.REJECTED,
+        ),
+    ],
+)
 @pytest.mark.asyncio
-async def test_voting_conclusion_approve(client: AsyncClient, session: AsyncSession):
-    """Test that voting concludes and the application status is set to APPROVED."""
+async def test_voting_conclusion(
+    client: AsyncClient,
+    session: AsyncSession,
+    scenario: str,
+    votes: list[VoteOption],
+    expected_status: ApplicationStatus,
+):
+    """Test voting conclusion with different vote combinations."""
     # Create an application and vote records via the API
     app_data = {
-        "first_name": "Approve",
-        "last_name": "Conclusion",
-        "applicant_email": "approve.con@example.com",
-        "department": "Legal",
-        "project_title": "Contract Review",
-        "project_description": "New contract",
-        "costs": 300.00,
+        "first_name": "Scenario",
+        "last_name": "Test",
+        "applicant_email": "scenario.test@example.com",
+        "department": "Scenarios",
+        "project_title": f"Test for {scenario}",
+        "project_description": "A test for a specific voting scenario.",
+        "costs": 500.00,
     }
     create_response = await client.post("/applications", json=app_data)
     app_id = create_response.json()["application_id"]
@@ -242,60 +295,14 @@ async def test_voting_conclusion_approve(client: AsyncClient, session: AsyncSess
         .order_by(VoteRecord.voter_email)
     )
     vote_records = result.scalars().all()
-    assert len(vote_records) == len(BOARD_MEMBERS)
+    assert len(vote_records) == len(TEST_BOARD_MEMBERS)
 
-    # Cast votes (majority approve)
-    await client.post(
-        f"/vote/{vote_records[0].token}", json={"decision": VoteOption.APPROVE.value}
-    )
-    await client.post(
-        f"/vote/{vote_records[1].token}", json={"decision": VoteOption.APPROVE.value}
-    )
-    await client.post(
-        f"/vote/{vote_records[2].token}", json={"decision": VoteOption.REJECT.value}
-    )
+    # Cast votes according to the scenario
+    for i, vote_decision in enumerate(votes):
+        await client.post(
+            f"/vote/{vote_records[i].token}", json={"decision": vote_decision.value}
+        )
 
     # Verify the application status
     updated_app = await session.get(Application, app_id)
-    assert updated_app.status == ApplicationStatus.APPROVED
-
-
-@pytest.mark.asyncio
-async def test_voting_conclusion_reject(client: AsyncClient, session: AsyncSession):
-    """Test that voting concludes and the application status is set to REJECTED."""
-    # Create an application and vote records via the API
-    app_data = {
-        "first_name": "Reject",
-        "last_name": "Conclusion",
-        "applicant_email": "reject.con@example.com",
-        "department": "Sales",
-        "project_title": "New Strategy",
-        "project_description": "Sales strategy",
-        "costs": 400.00,
-    }
-    create_response = await client.post("/applications", json=app_data)
-    app_id = create_response.json()["application_id"]
-
-    # Get all vote records for this application
-    result = await session.execute(
-        select(VoteRecord)
-        .where(VoteRecord.application_id == app_id)
-        .order_by(VoteRecord.voter_email)
-    )
-    vote_records = result.scalars().all()
-    assert len(vote_records) == len(BOARD_MEMBERS)
-
-    # Cast votes (majority reject)
-    await client.post(
-        f"/vote/{vote_records[0].token}", json={"decision": VoteOption.REJECT.value}
-    )
-    await client.post(
-        f"/vote/{vote_records[1].token}", json={"decision": VoteOption.REJECT.value}
-    )
-    await client.post(
-        f"/vote/{vote_records[2].token}", json={"decision": VoteOption.APPROVE.value}
-    )
-
-    # Verify the application status
-    updated_app = await session.get(Application, app_id)
-    assert updated_app.status == ApplicationStatus.REJECTED
+    assert updated_app.status == expected_status

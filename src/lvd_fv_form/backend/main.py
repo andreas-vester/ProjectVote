@@ -41,12 +41,25 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# In a real application, this might come from a config file or user database
-BOARD_MEMBERS = [
-    "board.member1@example.com",
-    "board.member2@example.com",
-    "board.member3@example.com",
-]
+
+def get_board_members() -> list[str]:
+    """Provides the list of board members.
+
+    In a real application, this could be fetched from a database or a configuration file.
+    For this example, it returns a hardcoded list.
+
+    Returns
+    -------
+    list[str]
+        A list of board member email addresses.
+
+    """
+    return [
+        "board.member1@example.com",
+        "board.member2@example.com",
+        "board.member3@example.com",
+    ]
+
 
 # --- Pydantic Models for API data validation ---
 
@@ -68,10 +81,12 @@ class VoteCreate(BaseModel):
 # --- Email Simulation Functions ---
 
 
-async def send_voting_links(application: Application, db: Session):
+async def send_voting_links(
+    application: Application, db: Session, board_members: list[str]
+):
     """Generates vote records and simulates sending emails with unique links."""
     print("\n--- Simulating Email Notifications ---")
-    for member_email in BOARD_MEMBERS:
+    for member_email in board_members:
         # Create a unique vote record for each board member
         vote_record = VoteRecord(
             application_id=application.id,
@@ -93,7 +108,9 @@ async def send_voting_links(application: Application, db: Session):
     print("--- End of Simulation ---\n")
 
 
-async def send_final_decision_emails(application: Application, db: Session):
+async def send_final_decision_emails(
+    application: Application, db: Session, board_members: list[str]
+):
     """Simulates sending final decision emails to the applicant and board members."""
     print("\n--- Simulating Final Decision Emails ---")
     # Notification to Applicant
@@ -106,7 +123,7 @@ async def send_final_decision_emails(application: Application, db: Session):
     print("---")
 
     # Notification to Board Members
-    for member_email in BOARD_MEMBERS:
+    for member_email in board_members:
         print(f"To: {member_email}")
         print(f"Subject: Voting concluded for: {application.project_title}")
         print(f"The application was {application.status.value.upper()}.")
@@ -124,7 +141,9 @@ async def read_root():
 
 @app.post("/applications", response_model=dict)
 async def submit_application(
-    application_data: ApplicationCreate, db: Session = Depends(get_db)
+    application_data: ApplicationCreate,
+    db: Session = Depends(get_db),
+    board_members: list[str] = Depends(get_board_members),
 ):
     """Creates a new application and triggers the voting process."""
     new_application = Application(
@@ -135,7 +154,7 @@ async def submit_application(
     await db.refresh(new_application)
 
     # Generate vote records and send links
-    await send_voting_links(new_application, db)
+    await send_voting_links(new_application, db, board_members)
     await db.commit()  # Commit all changes (application and vote records) here
 
     return {
@@ -177,7 +196,12 @@ async def get_vote_details(token: str, db: Session = Depends(get_db)):
 
 
 @app.post("/vote/{token}", response_model=dict)
-async def cast_vote(token: str, vote_data: VoteCreate, db: Session = Depends(get_db)):
+async def cast_vote(
+    token: str,
+    vote_data: VoteCreate,
+    db: Session = Depends(get_db),
+    board_members: list[str] = Depends(get_board_members),
+):
     """Casts a vote using a secure token and checks if voting is complete."""
     result = await db.execute(select(VoteRecord).where(VoteRecord.token == token))
     vote_record = result.scalar_one_or_none()
@@ -203,15 +227,15 @@ async def cast_vote(token: str, vote_data: VoteCreate, db: Session = Depends(get
 
     cast_votes = [v for v in application.votes if v.vote_status == VoteStatus.CAST]
 
-    if len(cast_votes) >= len(BOARD_MEMBERS):
+    if len(cast_votes) >= len(board_members):
         approvals = sum(1 for v in cast_votes if v.vote == VoteOption.APPROVE)
-        if approvals > len(BOARD_MEMBERS) / 2:
+        if approvals > len(board_members) / 2:
             application.status = ApplicationStatus.APPROVED
         else:
             application.status = ApplicationStatus.REJECTED
 
         await db.commit()
-        asyncio.create_task(send_final_decision_emails(application, db))
+        asyncio.create_task(send_final_decision_emails(application, db, board_members))
 
     return {"message": "Vote cast successfully"}
 
