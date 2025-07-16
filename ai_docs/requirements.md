@@ -1,0 +1,37 @@
+# Project Requirements: Funding Application Management System
+
+This document outlines the core functional requirements for the web application designed to manage funding applications for a school's support association (Förderverein).
+
+## 1. Application Submission
+
+*   **Purpose:** Allow individuals (e.g., teachers) to submit new funding requests.
+*   **Features:**
+    *   A user-friendly form for entering project details (title, description, costs, department).
+    *   Collection of applicant's contact information (name, email).
+
+## 2. Token-Based Board Voting
+
+*   **Purpose:** Enable board members to securely review and vote on submitted applications.
+*   **Features:**
+    *   Upon application submission, unique, secure voting links are generated for each board member.
+    *   Board members receive email notifications with their individual voting links.
+    *   Access to application details via the unique voting link.
+    *   Ability to cast a vote (approve, reject, or abstain) through a dedicated form.
+    *   Prevention of multiple votes from the same token.
+    *   However, it should be possible to change vote until the voting closes.
+
+## 3. Automated Decision Processing
+
+*   **Purpose:** Automatically determine the application status based on board votes.
+*   **Features:**
+    *   The application status is automatically updated once all board members have cast their votes.
+    *   Decision logic: Simple majority rules. In case of a tie, the application is rejected.
+    *   Email notifications are sent to the applicant and all board members once a final decision is reached.
+
+## 4. Application Archive
+
+*   **Purpose:** Provide a historical record of all funding applications and their outcomes.
+*   **Features:**
+    *   A view displaying all submitted applications.
+    *   For each application, display its current status (pending, approved, rejected).
+    *   Ability to view individual vote decisions from board members for each application.
