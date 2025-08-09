@@ -12,20 +12,20 @@ Develop a user-friendly frontend form that allows applicants to submit new fundi
 ## Tasks
 
 ### Phase 1: Form Design and Structure
-*   [ ] Create the basic HTML structure for the application form.
-*   [ ] Include input fields for `first_name`, `last_name`, `applicant_email`, `department`, `project_title`, `project_description`, and `costs`.
-*   [ ] Utilize appropriate input types (e.g., text, email, number, textarea).
-*   [ ] Implement basic styling for a clean and intuitive user interface.
+*   [x] Create the basic HTML structure for the application form.
+*   [x] Include input fields for `first_name`, `last_name`, `applicant_email`, `department`, `project_title`, `project_description`, and `costs`.
+*   [x] Utilize appropriate input types (e.g., text, email, number, textarea).
+*   [x] Implement basic styling for a clean and intuitive user interface.
 
 ### Phase 2: Client-Side Validation
-*   [ ] Add client-side validation rules for each input field (e.g., required fields, email format, numeric costs).
-*   [ ] Provide immediate visual feedback to the user for invalid inputs.
+*   [x] Add client-side validation rules for each input field (e.g., required fields, email format, numeric costs).
+*   [x] Provide immediate visual feedback to the user for invalid inputs.
 
 ### Phase 3: Backend API Integration
-*   [ ] Implement a function to handle form submission, collecting data from all input fields.
-*   [ ] Use an HTTP client library (e.g., Axios) to send a POST request to the backend's application submission API endpoint.
-*   [ ] Handle successful API responses (e.g., display a success message, clear the form).
-*   [ ] Handle API errors (e.g., display error messages for validation failures or server errors).
+*   [x] Implement a function to handle form submission, collecting data from all input fields.
+*   [x] Use an HTTP client library (e.g., Axios) to send a POST request to the backend's application submission API endpoint.
+*   [x] Handle successful API responses (e.g., display a success message, clear the form).
+*   [x] Handle API errors (e.g., display error messages for validation failures or server errors).
 
 ### Phase 4: User Experience Feedback
-*   [ ] Implement visual feedback mechanisms (e.g., loading indicators, success/error messages, snackbar notifications) to inform the user about the submission process and its outcome.
+*   [x] Implement visual feedback mechanisms (e.g., loading indicators, success/error messages, snackbar notifications) to inform the user about the submission process and its outcome.

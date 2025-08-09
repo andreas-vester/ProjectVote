@@ -11,18 +11,18 @@ Create a backend API endpoint that provides access to a historical archive of al
 ## Tasks
 
 ### Phase 1: API Endpoint Definition
-*   [ ] Choose an appropriate HTTP method (e.g., GET) and path (e.g., `/applications/archive` or `/applications`) for retrieving archived applications.
+*   [x] Choose an appropriate HTTP method (e.g., GET) and path (e.g., `/applications/archive` or `/applications`) for retrieving archived applications.
 *   [ ] Consider pagination or filtering parameters if the number of applications is expected to be large.
 
 ### Phase 2: Data Retrieval and Aggregation
-*   [ ] Implement the API endpoint function in the backend framework.
-*   [ ] Query the database to retrieve all `Application` records.
-*   [ ] For each application, retrieve all associated `VoteRecord`s.
-*   [ ] Ensure efficient data retrieval, potentially using ORM eager loading to minimize database queries.
+*   [x] Implement the API endpoint function in the backend framework.
+*   [x] Query the database to retrieve all `Application` records.
+*   [x] For each application, retrieve all associated `VoteRecord`s.
+*   [x] Ensure efficient data retrieval, potentially using ORM eager loading to minimize database queries.
 
 ### Phase 3: Response Structuring
-*   [ ] Define the Pydantic model for the API response, ensuring it includes:
+*   [x] Define the Pydantic model for the API response, ensuring it includes:
     *   All `Application` details (e.g., project title, description, costs, final status).
     *   A list of associated `VoteRecord`s, each containing voter identification and their decision.
-*   [ ] Format the retrieved data into the defined response structure.
-*   [ ] Implement appropriate error handling for cases where no applications are found.
+*   [x] Format the retrieved data into the defined response structure.
+*   [x] Implement appropriate error handling for cases where no applications are found.
