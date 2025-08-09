@@ -1,36 +1,49 @@
+"""SQLAlchemy models for the application."""
+
 import enum
 import uuid
+
 from sqlalchemy import (
     Column,
+    Float,
+    ForeignKey,
     Integer,
     String,
-    Float,
-    Enum as PyEnum,
-    ForeignKey,
 )
-from sqlalchemy.orm import relationship, declarative_base
+from sqlalchemy import (
+    Enum as PyEnum,
+)
+from sqlalchemy.orm import declarative_base, relationship
 
 Base = declarative_base()
 
 
 class ApplicationStatus(str, enum.Enum):
+    """Enum for the status of an application."""
+
     PENDING = "pending"
     APPROVED = "approved"
     REJECTED = "rejected"
 
 
 class VoteOption(str, enum.Enum):
+    """Enum for the options a voter can take."""
+
     APPROVE = "approve"
     REJECT = "reject"
     ABSTAIN = "abstain"
 
 
 class VoteStatus(str, enum.Enum):
+    """Enum for the status of a vote."""
+
     PENDING = "pending"
     CAST = "cast"
 
 
 class Application(Base):
+    """Represents a funding application."""
+
     __tablename__ = "applications"
 
     id = Column(Integer, primary_key=True, index=True)
@@ -48,11 +61,14 @@ class Application(Base):
     votes = relationship("VoteRecord", back_populates="application")
 
 
-def generate_uuid():
+def generate_uuid() -> str:
+    """Generate a unique UUID for a vote record."""
     return str(uuid.uuid4())
 
 
 class VoteRecord(Base):
+    """Represents a single vote record for an application."""
+
     __tablename__ = "votes"
 
     id = Column(Integer, primary_key=True, index=True)

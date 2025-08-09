@@ -1,4 +1,8 @@
-from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
+"""Database configuration and session management for the application."""
+
+from collections.abc import AsyncGenerator
+
+from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
 
 DATABASE_URL = "sqlite+aiosqlite:///./data/applications.db"
@@ -14,6 +18,7 @@ AsyncSessionLocal = sessionmaker(
 )
 
 
-async def get_db():
+async def get_db() -> AsyncGenerator[AsyncSession, None]:
+    """Yield a new database session."""
     async with AsyncSessionLocal() as session:
         yield session
