@@ -114,7 +114,7 @@ const VotingForm: React.FC = () => {
         <Typography variant="h4" component="h1" gutterBottom>
           Abstimmung für Antrag: {application.project_title}
         </Typography>
-        
+
         <Box sx={{ mb: 3, p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 1 }}>
             <Typography variant="h6">Antragsdetails</Typography>
             <Typography><b>Abteilung/Fachschaft:</b> {application.department}</Typography>
