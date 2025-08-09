@@ -1,17 +1,22 @@
-import pytest
-import pytest_asyncio
-from httpx import AsyncClient
-from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
-from sqlalchemy.orm import sessionmaker
-from sqlalchemy import select
+"""Tests for the LVD-FV form submission and voting system."""
+
+from collections.abc import AsyncGenerator
+from http import HTTPStatus
 from pathlib import Path  # Import Path
 
+import pytest
+import pytest_asyncio
+from httpx import ASGITransport, AsyncClient
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
+from sqlalchemy.orm import sessionmaker
+
+from lvd_fv_form.backend.database import DATABASE_URL, get_db
 from lvd_fv_form.backend.main import app, get_board_members
-from lvd_fv_form.backend.database import get_db, DATABASE_URL
 from lvd_fv_form.backend.models import (
-    Base,
     Application,
     ApplicationStatus,
+    Base,
     VoteOption,
     VoteRecord,
     VoteStatus,
@@ -30,6 +35,7 @@ test_db_filename = DATABASE_URL.split("///")[-1].replace(
     ".db", "_test.db"
 )  # Extract only the filename
 test_db_path = Path(test_db_filename)  # Use Path
+test_db_path.parent.mkdir(parents=True, exist_ok=True)
 test_engine = create_async_engine(
     f"sqlite+aiosqlite:///./{test_db_filename}", echo=False
 )
@@ -41,8 +47,8 @@ TestSessionLocal = sessionmaker(
 
 
 @pytest_asyncio.fixture(name="session")
-async def session_fixture():
-    """Yields a test database session and cleans up after each test."""
+async def session_fixture() -> AsyncGenerator[AsyncSession, None]:
+    """Yield a test database session and clean up after each test."""
     async with test_engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
 
@@ -59,19 +65,19 @@ async def session_fixture():
 
 
 @pytest_asyncio.fixture(name="client")
-async def client_fixture(session: AsyncSession):
-    """Yields an AsyncClient for testing the FastAPI app."""
+async def client_fixture(
+    session: AsyncSession,
+) -> AsyncGenerator[AsyncClient, None]:
+    """Yield an AsyncClient for testing the FastAPI app."""
 
-    async def get_test_db():
+    async def get_test_db() -> AsyncGenerator[AsyncSession, None]:
         yield session
 
-    def get_test_board_members():
+    def get_test_board_members() -> list[str]:
         return TEST_BOARD_MEMBERS
 
     app.dependency_overrides[get_db] = get_test_db
     app.dependency_overrides[get_board_members] = get_test_board_members
-
-    from httpx import ASGITransport
 
     async with AsyncClient(
         transport=ASGITransport(app=app), base_url="http://test"
@@ -81,15 +87,15 @@ async def client_fixture(session: AsyncSession):
 
 
 @pytest.mark.asyncio
-async def test_read_root(client: AsyncClient):
+async def test_read_root(client: AsyncClient) -> None:
     """Test that the root endpoint returns a welcome message."""
     response = await client.get("/")
-    assert response.status_code == 200
+    assert response.status_code == HTTPStatus.OK
     assert response.json() == {"message": "Welcome to the Funding Application API"}
 
 
 @pytest.mark.asyncio
-async def test_create_application(client: AsyncClient, session: AsyncSession):
+async def test_create_application(client: AsyncClient, session: AsyncSession) -> None:
     """Test creating a new application and associated vote records."""
     application_data = {
         "first_name": "Test",
@@ -101,7 +107,7 @@ async def test_create_application(client: AsyncClient, session: AsyncSession):
         "costs": 123.45,
     }
     response = await client.post("/applications", json=application_data)
-    assert response.status_code == 200
+    assert response.status_code == HTTPStatus.OK
     response_data = response.json()
     assert response_data["message"] == "Application submitted successfully"
     assert "application_id" in response_data
@@ -120,23 +126,33 @@ async def test_create_application(client: AsyncClient, session: AsyncSession):
 
 
 @pytest.mark.parametrize(
-    "scenario, token_to_use, expected_status_code, expected_detail",
+    ("scenario", "token_to_use", "expected_status_code", "expected_detail"),
     [
-        ("Success", "VALID_TOKEN", 200, None),
-        ("Invalid Token", "invalid-token-123", 404, "Invalid or expired token."),
-        ("Vote Already Cast", "ALREADY_CAST_TOKEN", 400, "This vote has already been cast."),
+        ("Success", "VALID_TOKEN", HTTPStatus.OK, None),
+        (
+            "Invalid Token",
+            "invalid-token-123",
+            HTTPStatus.NOT_FOUND,
+            "Invalid or expired token.",
+        ),
+        (
+            "Vote Already Cast",
+            "ALREADY_CAST_TOKEN",
+            HTTPStatus.BAD_REQUEST,
+            "This vote has already been cast.",
+        ),
     ],
 )
 @pytest.mark.asyncio
 async def test_get_vote_details_scenarios(
     client: AsyncClient,
     session: AsyncSession,
-    scenario: str,
+    scenario: str,  # noqa: ARG001
     token_to_use: str,
     expected_status_code: int,
     expected_detail: str | None,
-):
-    """Tests fetching vote details under different scenarios."""
+) -> None:
+    """Test fetching vote details under different scenarios."""
     # --- Setup: Create a base application and a valid token ---
     app_data = {
         "first_name": "Token",
@@ -157,11 +173,14 @@ async def test_get_vote_details_scenarios(
     assert vote_record is not None
     valid_token = vote_record.token
 
-    # --- Scenario-specific setup ---
+    # -- Scenario-specific setup ---
     final_token_to_use = valid_token
-    if token_to_use == "invalid-token-123":
+    invalid_token = "invalid-token-123"  # noqa: S105
+    already_cast_token = "ALREADY_CAST_TOKEN"  # noqa: S105
+
+    if token_to_use == invalid_token:
         final_token_to_use = token_to_use
-    elif token_to_use == "ALREADY_CAST_TOKEN":
+    elif token_to_use == already_cast_token:
         # Cast the vote first to trigger the error
         await client.post(f"/vote/{valid_token}", json={"decision": "approve"})
         final_token_to_use = valid_token
@@ -177,31 +196,39 @@ async def test_get_vote_details_scenarios(
         # Additional checks for the success case
         response_data = response.json()
         assert response_data["voter_email"] == vote_record.voter_email
-        assert response_data["application"]["project_title"] == app_data["project_title"]
+        assert (
+            response_data["application"]["project_title"] == app_data["project_title"]
+        )
 
 
 @pytest.mark.parametrize(
-    "scenario, token_type, vote_decision, expected_status_code, expected_message",
+    (
+        "scenario",
+        "token_type",
+        "vote_decision",
+        "expected_status_code",
+        "expected_message",
+    ),
     [
         (
             "Success",
             "VALID_TOKEN",
             VoteOption.APPROVE,
-            200,
+            HTTPStatus.OK,
             "Vote cast successfully",
         ),
         (
             "Already Cast",
             "ALREADY_CAST_TOKEN",
             VoteOption.REJECT,
-            400,
+            HTTPStatus.BAD_REQUEST,
             "Vote has already been cast.",
         ),
         (
             "Invalid Token",
             "INVALID_TOKEN",
             VoteOption.APPROVE,
-            404,
+            HTTPStatus.NOT_FOUND,
             "Invalid or expired token.",
         ),
     ],
@@ -215,8 +242,8 @@ async def test_cast_vote_scenarios(
     vote_decision: VoteOption,
     expected_status_code: int,
     expected_message: str,
-):
-    """Tests casting a vote under different scenarios."""
+) -> None:
+    """Test casting a vote under different scenarios."""
     # --- Setup: Create a base application and a valid token ---
     app_data = {
         "first_name": "Vote",
@@ -240,13 +267,18 @@ async def test_cast_vote_scenarios(
     assert vote_record is not None
     valid_token = vote_record.token
 
-    # --- Scenario-specific setup ---
+    # -- Scenario-specific setup ---
     final_token_to_use = valid_token
-    if token_type == "INVALID_TOKEN":
-        final_token_to_use = "invalid-token-123"
-    elif token_type == "ALREADY_CAST_TOKEN":
+    invalid_token = "invalid-token-123"  # noqa: S105
+    already_cast_token = "ALREADY_CAST_TOKEN"  # noqa: S105
+
+    if token_type == "INVALID_TOKEN":  # noqa: S105
+        final_token_to_use = invalid_token
+    elif token_type == already_cast_token:
         # Cast the vote first to trigger the "already cast" error
-        await client.post(f"/vote/{valid_token}", json={"decision": VoteOption.APPROVE.value})
+        await client.post(
+            f"/vote/{valid_token}", json={"decision": VoteOption.APPROVE.value}
+        )
         final_token_to_use = valid_token
 
     # --- Act: Perform the request ---
@@ -256,7 +288,7 @@ async def test_cast_vote_scenarios(
 
     # --- Assert: Check the outcome ---
     assert response.status_code == expected_status_code
-    if expected_status_code == 200:
+    if expected_status_code == HTTPStatus.OK:
         assert response.json() == {"message": expected_message}
         # Verify vote record was updated for success case
         await session.refresh(vote_record)
@@ -266,9 +298,8 @@ async def test_cast_vote_scenarios(
         assert response.json() == {"detail": expected_message}
 
 
-
 @pytest.mark.parametrize(
-    "scenario, votes, expected_status",
+    ("scenario", "votes", "expected_status"),
     [
         (
             "3/4 Approve -> APPROVED",
@@ -309,7 +340,7 @@ async def test_voting_conclusion(
     scenario: str,
     votes: list[VoteOption],
     expected_status: ApplicationStatus,
-):
+) -> None:
     """Test voting conclusion with different vote combinations."""
     # Create an application and vote records via the API
     app_data = {
@@ -341,4 +372,5 @@ async def test_voting_conclusion(
 
     # Verify the application status
     updated_app = await session.get(Application, app_id)
+    assert updated_app is not None
     assert updated_app.status == expected_status
