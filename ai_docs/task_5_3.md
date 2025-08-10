@@ -1,31 +1,31 @@
-# Task 5.3: Notifications & Alerts
+# Task 4.3: Database Setup & Management
 
 ## Goal
-Implement a system for sending automated notifications and alerts to users (applicants, board members) regarding application status changes, upcoming deadlines, or other relevant events.
+Establish a robust and maintainable database setup for the production environment, including initial setup, backups, and potential migrations.
 
 ## Plan
-1.  Identify notification triggers and recipients.
-2.  Choose a notification delivery mechanism.
-3.  Implement backend logic for generating and sending notifications.
-4.  Integrate with frontend for displaying in-app alerts.
+1.  Choose a production-ready database system.
+2.  Implement initial database setup and schema application.
+3.  Define a backup and recovery strategy.
+4.  Plan for database migrations.
 
 ## Tasks
 
-### Phase 1: Notification Triggers and Content
-*   [ ] Identify events that should trigger notifications (e.g., application status change, new application submitted, voting deadline approaching).
-*   [ ] Define the content and format of each notification type.
-*   [ ] Determine the recipients for each notification (e.g., applicant, all board members, specific board members).
+### Phase 1: Production Database Selection
+*   [ ] Choose a suitable production-grade database system (e.g., PostgreSQL, MySQL, SQLite for very small scale).
+*   [ ] Consider factors like performance, scalability, reliability, and ease of management.
 
-### Phase 2: Delivery Mechanism Selection
-*   [ ] Choose a primary notification delivery mechanism (e.g., email, in-app notifications, push notifications).
-*   [ ] Consider integrating with third-party services for reliable delivery (e.g., SendGrid for email, Pusher for real-time).
+### Phase 2: Initial Database Setup
+*   [ ] Provision the chosen database instance in the production environment.
+*   [ ] Configure database credentials and access control securely.
+*   [ ] Implement a script or process to apply the initial database schema (create tables) to the production database.
 
-### Phase 3: Backend Notification Logic
-*   [ ] Implement backend services or functions responsible for generating notification messages based on triggers.
-*   [ ] Integrate with the chosen delivery mechanism to send notifications (e.g., call email API, send to message queue).
-*   [ ] Implement a logging mechanism for sent notifications.
+### Phase 3: Backup and Recovery Strategy
+*   [ ] Define a regular backup schedule for the production database.
+*   [ ] Implement automated backup procedures (e.g., cron jobs, cloud provider services).
+*   [ ] Establish a recovery plan and test the restoration process to ensure data integrity.
 
-### Phase 4: Frontend Integration (In-App Alerts)
-*   [ ] If in-app notifications are desired, implement frontend components to display alerts or messages to logged-in users.
-*   [ ] Utilize WebSockets or polling to receive real-time updates from the backend for immediate alerts.
-*   [ ] Provide a notification center or history for users to review past alerts.
+### Phase 4: Database Migrations
+*   [ ] Choose a database migration tool (e.g., Alembic for SQLAlchemy).
+*   [ ] Define a process for managing schema changes and data migrations as the application evolves.
+*   [ ] Implement initial migration scripts to track the database schema version.

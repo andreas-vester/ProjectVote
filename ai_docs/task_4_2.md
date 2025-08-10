@@ -1,29 +1,29 @@
-# Task 4.2: Frontend Deployment Strategy
+# Task 3.2: Comprehensive End-to-End Tests
 
 ## Goal
-Define and implement a strategy for deploying the frontend application to a production environment, ensuring optimal performance and accessibility.
+Develop and execute a suite of end-to-end tests to validate the complete functionality of the integrated backend and frontend application.
 
 ## Plan
-1.  Choose a hosting platform for static assets.
-2.  Configure build process for production optimization.
-3.  Set up continuous deployment for frontend changes.
+1.  Choose an end-to-end testing framework.
+2.  Design test scenarios covering all major user flows.
+3.  Implement automated tests for each scenario.
 
 ## Tasks
 
-### Phase 1: Hosting Platform Selection
-*   [ ] Evaluate potential hosting platforms for static frontend assets (e.g., Netlify, Vercel, AWS S3 + CloudFront, GitHub Pages, Nginx).
-*   [ ] Consider factors like CDN integration, SSL, and ease of deployment.
+### Phase 1: Framework Selection and Setup
+*   [ ] Research and select an appropriate end-to-end testing framework (e.g., Playwright, Cypress, Selenium).
+*   [ ] Install and configure the chosen framework in the project.
 
-### Phase 2: Production Build Configuration
-*   [ ] Configure the frontend build process (e.g., Vite, Webpack) for production optimization, including:
-    *   Code minification (HTML, CSS, JavaScript).
-    *   Asset optimization (image compression, lazy loading).
-    *   Caching strategies.
-*   [ ] Test the production build locally to ensure all assets are correctly compiled and optimized.
+### Phase 2: Test Scenario Design
+*   [ ] Define test scenarios that cover the entire user journey, including:
+    *   Successful application submission and verification in the archive.
+    *   Voting process from receiving a token to final decision and email simulation.
+    *   Error handling for invalid inputs, tokens, and already-cast votes.
+    *   Viewing the application archive with various application states.
+*   [ ] Outline the steps for each scenario (e.g., navigate to form, fill fields, click submit, assert outcome).
 
-### Phase 3: Continuous Deployment Setup
-*   [ ] Set up a continuous deployment pipeline (e.g., integrated with the chosen hosting platform or using a CI/CD tool) to automate:
-    *   Building the production-ready frontend on code push.
-    *   Deploying the built assets to the hosting platform.
-*   [ ] Configure custom domains and SSL certificates.
-*   [ ] Implement cache invalidation strategies for new deployments.
+### Phase 3: Automated Test Implementation
+*   [ ] Write automated end-to-end tests for each defined scenario using the chosen framework.
+*   [ ] Ensure tests interact with the application as a real user would (e.g., filling forms, clicking buttons, navigating pages).
+*   [ ] Implement assertions to verify the correct behavior and state of the application at each step.
+*   [ ] Configure the test suite to run against a deployed or locally running instance of the integrated application.
