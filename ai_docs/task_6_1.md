@@ -1,32 +1,32 @@
-# Task 5.1: User Authentication & Authorization
+# Task 4.1: Backend Deployment Strategy
 
 ## Goal
-Implement a secure system for user authentication and authorization, allowing different types of users (e.g., administrators, board members) to access specific functionalities.
+Define and implement a strategy for deploying the backend API to a production environment, ensuring scalability, reliability, and security.
 
 ## Plan
-1.  Choose an authentication strategy.
-2.  Implement user registration and login.
-3.  Define user roles and permissions.
-4.  Integrate authorization checks into API endpoints and frontend components.
+1.  Choose a deployment platform.
+2.  Containerize the backend application.
+3.  Configure environment variables and secrets management.
+4.  Set up continuous integration/continuous deployment (CI/CD) pipeline.
 
 ## Tasks
 
-### Phase 1: Authentication Strategy Selection
-*   [ ] Research and select an appropriate authentication strategy (e.g., JWT, OAuth2, session-based).
-*   [ ] Consider the security implications and complexity of each option.
+### Phase 1: Platform Selection
+*   [ ] Evaluate potential deployment platforms (e.g., Heroku, AWS EC2/ECS, Google Cloud Run, Azure App Service, a private VPS).
+*   [ ] Consider factors like cost, scalability, ease of management, and existing infrastructure.
 
-### Phase 2: User Management Implementation
-*   [ ] Design a database schema for storing user information (e.g., username, hashed password, roles).
-*   [ ] Implement backend API endpoints for user registration and login.
-*   [ ] Securely handle password hashing and storage.
+### Phase 2: Containerization
+*   [ ] Create a `Dockerfile` for the FastAPI application.
+*   [ ] Ensure the Docker image includes all necessary dependencies and configurations.
+*   [ ] Build and test the Docker image locally.
 
-### Phase 3: Role-Based Access Control (RBAC)
-*   [ ] Define different user roles (e.g., `admin`, `board_member`, `applicant`).
-*   [ ] Implement a mechanism to assign roles to users.
-*   [ ] Integrate authorization checks into backend API endpoints to restrict access based on user roles.
+### Phase 3: Configuration and Secrets Management
+*   [ ] Identify all environment-specific configurations (e.g., database connection strings, API keys).
+*   [ ] Implement a secure method for managing secrets in the production environment (e.g., environment variables, secret management services).
 
-### Phase 4: Frontend Integration
-*   [ ] Implement frontend components for user login and registration.
-*   [ ] Store and manage user authentication tokens/sessions securely on the client-side.
-*   [ ] Implement conditional rendering in frontend components to show/hide UI elements based on user roles and permissions.
-*   [ ] Add logic to include authentication tokens in API requests.
+### Phase 4: CI/CD Pipeline Setup
+*   [ ] Set up a CI/CD pipeline (e.g., GitHub Actions, GitLab CI, Jenkins) to automate:
+    *   Building the Docker image on code push.
+    *   Pushing the image to a container registry.
+    *   Deploying the new image to the chosen platform.
+*   [ ] Configure health checks and monitoring for the deployed backend.

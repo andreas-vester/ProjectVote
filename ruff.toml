@@ -38,8 +38,8 @@ target-version = "py312"
 select = ["ALL"]
 ignore = [
     "COM812",   # checks for absence of trailing commas
-    "EXE002",   # The file is executable but no shebang is present
     "EM101",    # checks for raw-string-in-exception while raising err msgs
+    "EXE002",   # The file is executable but no shebang is present
     "FIX002",   # checks for unresolved TO-DO statements
     "INP001",   # implicit namespace package
     "ISC001",   # checks for implicitly concatenated strings on a single line

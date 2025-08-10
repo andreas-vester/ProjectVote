@@ -1,29 +1,29 @@
-# Task 3.2: Comprehensive End-to-End Tests
+# Task 3.2: New Application Notification
 
 ## Goal
-Develop and execute a suite of end-to-end tests to validate the complete functionality of the integrated backend and frontend application.
+Integrate the email service to automatically send notifications to all board members upon the successful submission of a new funding application.
 
 ## Plan
-1.  Choose an end-to-end testing framework.
-2.  Design test scenarios covering all major user flows.
-3.  Implement automated tests for each scenario.
+1.  Integrate the email sending function into the application submission endpoint.
+2.  Create an email template for the new application notification.
+3.  Ensure all board members receive their unique voting links in the email.
 
 ## Tasks
 
-### Phase 1: Framework Selection and Setup
-*   [ ] Research and select an appropriate end-to-end testing framework (e.g., Playwright, Cypress, Selenium).
-*   [ ] Install and configure the chosen framework in the project.
+### Phase 1: Integration with Submission Endpoint
+*   [ ] In the `/applications` endpoint in `main.py`, after a new application is successfully created and vote records are generated, call the `send_email` function.
+*   [ ] Loop through each board member and send them a personalized email.
 
-### Phase 2: Test Scenario Design
-*   [ ] Define test scenarios that cover the entire user journey, including:
-    *   Successful application submission and verification in the archive.
-    *   Voting process from receiving a token to final decision and email simulation.
-    *   Error handling for invalid inputs, tokens, and already-cast votes.
-    *   Viewing the application archive with various application states.
-*   [ ] Outline the steps for each scenario (e.g., navigate to form, fill fields, click submit, assert outcome).
+### Phase 2: Email Template
+*   [ ] Design a clear and informative email template.
+*   [ ] The template should include:
+    *   The project title.
+    *   The applicant's name.
+    *   The estimated costs.
+    *   A direct, unique link to the voting page (e.g., `http://localhost:5173/vote/{token}`).
+*   [ ] Consider using a simple HTML template for better formatting.
 
-### Phase 3: Automated Test Implementation
-*   [ ] Write automated end-to-end tests for each defined scenario using the chosen framework.
-*   [ ] Ensure tests interact with the application as a real user would (e.g., filling forms, clicking buttons, navigating pages).
-*   [ ] Implement assertions to verify the correct behavior and state of the application at each step.
-*   [ ] Configure the test suite to run against a deployed or locally running instance of the integrated application.
+### Phase 3: Verification
+*   [ ] During development, use a tool like MailHog or a similar local SMTP server to capture and inspect outgoing emails.
+*   [ ] Verify that each board member receives an email with the correct, unique voting link.
+*   [ ] Confirm that the email content accurately reflects the submitted application details.

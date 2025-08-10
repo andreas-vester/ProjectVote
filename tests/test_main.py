@@ -7,10 +7,12 @@ from pathlib import Path  # Import Path
 import pytest
 import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
+from pytest_mock import MockerFixture
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
 
+from lvd_fv_form.backend.config import Settings
 from lvd_fv_form.backend.database import DATABASE_URL, get_db
 from lvd_fv_form.backend.main import app, get_board_members
 from lvd_fv_form.backend.models import (
@@ -181,7 +183,7 @@ async def test_get_vote_details_scenarios(
     if token_to_use == invalid_token:
         final_token_to_use = token_to_use
     elif token_to_use == already_cast_token:
-        # Cast the vote first to trigger the error
+        # Cast the vote first to trigger the "already cast" error
         await client.post(f"/vote/{valid_token}", json={"decision": "approve"})
         final_token_to_use = valid_token
 
@@ -374,3 +376,28 @@ async def test_voting_conclusion(
     updated_app = await session.get(Application, app_id)
     assert updated_app is not None
     assert updated_app.status == expected_status
+
+
+def test_get_board_members_from_config(mocker: MockerFixture) -> None:
+    """Test that get_board_members correctly parses the config string."""
+    # Arrange
+    test_emails = "board1@test.com,board2@test.com,board3@test.com"
+    expected_list = ["board1@test.com", "board2@test.com", "board3@test.com"]
+
+    # Create a mock instance of Settings
+    mock_settings_instance = mocker.MagicMock(spec=Settings)
+    mock_settings_instance.board_members = test_emails
+
+    # Patch the get_app_settings dependency to return our mock settings
+    mocker.patch(
+        "lvd_fv_form.backend.main.get_app_settings",
+        return_value=mock_settings_instance,
+    )
+
+    # Act
+    # get_board_members will now receive the mock_settings_instance
+    # via Depends(get_app_settings)
+    actual_list = get_board_members(mock_settings_instance)
+
+    # Assert
+    assert actual_list == expected_list

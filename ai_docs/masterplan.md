@@ -16,21 +16,26 @@ This document outlines the high-level development phases for the Funding Applica
 ### 2.4 API Integration Layer
 ### 2.5 Frontend Routing
 
-## 3. Email Integration
-### 3.1 Email Service Configuration
-### 3.2 New Application Notification
-### 3.3 Final Decision Notification
+## 3. Application Configuration
+### 3.1 Environment Variable Setup
+### 3.2 Central Configuration Module
+### 3.3 Board Member Configuration
 
-## 4. Integration & End-to-End Testing
-### 4.1 Backend-Frontend Integration
-### 4.2 Comprehensive End-to-End Tests
+## 4. Email Integration
+### 4.1 Email Service Configuration
+### 4.2 New Application Notification
+### 4.3 Final Decision Notification
 
-## 5. Deployment & Infrastructure
-### 5.1 Backend Deployment Strategy
-### 5.2 Frontend Deployment Strategy
-### 5.3 Database Setup & Management
+## 5. Integration & End-to-End Testing
+### 5.1 Backend-Frontend Integration
+### 5.2 Comprehensive End-to-End Tests
 
-## 6. Enhancements & Future Features
-### 6.1 User Authentication & Authorization
-### 6.2 Advanced Reporting
-### 6.3 Notifications & Alerts
+## 6. Deployment & Infrastructure
+### 6.1 Backend Deployment Strategy
+### 6.2 Frontend Deployment Strategy
+### 6.3 Database Setup & Management
+
+## 7. Enhancements & Future Features
+### 7.1 User Authentication & Authorization
+### 7.2 Advanced Reporting
+### 7.3 Notifications & Alerts

@@ -5,12 +5,14 @@ from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from typing import Annotated
 
+from dotenv import load_dotenv
 from fastapi import Depends, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
+from .config import Settings
 from .database import engine, get_db
 from .models import (
     Application,
@@ -20,6 +22,8 @@ from .models import (
     VoteRecord,
     VoteStatus,
 )
+
+load_dotenv()
 
 
 @asynccontextmanager
@@ -47,23 +51,20 @@ app.add_middleware(
 )
 
 
-def get_board_members() -> list[str]:
-    """Provide the list of board members.
+def get_app_settings() -> Settings:
+    """Return application settings."""
+    settings_instance = Settings()
+    if settings_instance.board_members is None:
+        raise ValueError("BOARD_MEMBERS environment variable is not set.")
+    return settings_instance
 
-    In a real application, this could be fetched from a database or a
-    configuration file. For this example, it returns a hardcoded list.
 
-    Returns
-    -------
-    list[str]
-        A list of board member email addresses.
-
-    """
-    return [
-        "board.member1@example.com",
-        "board.member2@example.com",
-        "board.member3@example.com",
-    ]
+def get_board_members(
+    settings: Annotated[Settings, Depends(get_app_settings)],
+) -> list[str]:
+    """Provide the list of board members from settings."""
+    assert settings.board_members is not None  # Type narrowing for static analysis
+    return [email.strip() for email in settings.board_members.split(",")]
 
 
 # --- Pydantic Models for API data validation ---

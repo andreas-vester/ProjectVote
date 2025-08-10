@@ -1,32 +1,8 @@
-# Task 3.3: Final Decision Notification
+# Task 3.3: Board Member Configuration
 
 ## Goal
-Automate the sending of final decision emails to both the applicant and all board members once voting on an application is complete.
-
-## Plan
-1.  Integrate the email sending function into the voting completion logic.
-2.  Create separate email templates for the applicant and board members.
-3.  Ensure the final status (approved or rejected) is clearly communicated.
+Manage the list of board members through the central configuration system instead of hardcoding it.
 
 ## Tasks
-
-### Phase 1: Integration with Voting Logic
-*   [ ] In the `/vote/{token}` endpoint, after the final vote is cast and the application status is updated, trigger the email notification process.
-*   [ ] Call the `send_email` function to notify the applicant and all board members.
-
-### Phase 2: Applicant Email Template
-*   [ ] Design an email template for the applicant.
-*   [ ] The template should:
-    *   Clearly state the final decision (approved or rejected).
-    *   Include the project title.
-    *   Thank the applicant for their submission.
-
-### Phase 3: Board Member Email Template
-*   [ ] Design an email template for the board members.
-*   [ ] The template should:
-    *   Announce that voting is complete for a specific application.
-    *   State the final outcome.
-
-### Phase 4: Verification
-*   [ ] Use a local email testing tool to verify that both the applicant and all board members receive the correct notification.
-*   [ ] Test both "approved" and "rejected" scenarios to ensure the email content is accurate.
+*   [x] The list of board member emails is defined by a `BOARD_MEMBERS` variable in the `.env` file.
+*   [x] The `get_board_members` dependency function is refactored to source its data from the central configuration module.

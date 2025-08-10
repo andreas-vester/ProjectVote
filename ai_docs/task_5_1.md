@@ -1,32 +1,33 @@
-# Task 4.1: Backend Deployment Strategy
+# Task 3.1: Backend-Frontend Integration
 
 ## Goal
-Define and implement a strategy for deploying the backend API to a production environment, ensuring scalability, reliability, and security.
+Ensure seamless communication and data exchange between the developed backend API and the frontend application.
 
 ## Plan
-1.  Choose a deployment platform.
-2.  Containerize the backend application.
-3.  Configure environment variables and secrets management.
-4.  Set up continuous integration/continuous deployment (CI/CD) pipeline.
+1.  Verify API endpoint accessibility from the frontend.
+2.  Address Cross-Origin Resource Sharing (CORS) issues.
+3.  Test data flow between frontend components and backend API.
 
 ## Tasks
 
-### Phase 1: Platform Selection
-*   [ ] Evaluate potential deployment platforms (e.g., Heroku, AWS EC2/ECS, Google Cloud Run, Azure App Service, a private VPS).
-*   [ ] Consider factors like cost, scalability, ease of management, and existing infrastructure.
+### Phase 1: API Accessibility Verification
+*   [x] Ensure both backend and frontend development servers are running concurrently.
+*   [x] Verify that frontend requests are correctly directed to the backend API's URL and port.
+*   [x] Use browser developer tools to inspect network requests and responses, confirming successful communication.
 
-### Phase 2: Containerization
-*   [ ] Create a `Dockerfile` for the FastAPI application.
-*   [ ] Ensure the Docker image includes all necessary dependencies and configurations.
-*   [ ] Build and test the Docker image locally.
+### Phase 2: CORS Configuration
+*   [x] If cross-origin issues arise, configure CORS policies on the backend to allow requests from the frontend's origin.
+*   [x] Specify allowed origins, HTTP methods, and headers as required.
 
-### Phase 3: Configuration and Secrets Management
-*   [ ] Identify all environment-specific configurations (e.g., database connection strings, API keys).
-*   [ ] Implement a secure method for managing secrets in the production environment (e.g., environment variables, secret management services).
-
-### Phase 4: CI/CD Pipeline Setup
-*   [ ] Set up a CI/CD pipeline (e.g., GitHub Actions, GitLab CI, Jenkins) to automate:
-    *   Building the Docker image on code push.
-    *   Pushing the image to a container registry.
-    *   Deploying the new image to the chosen platform.
-*   [ ] Configure health checks and monitoring for the deployed backend.
+### Phase 3: Data Flow Testing
+*   [x] Perform end-to-end tests for application submission:
+    *   Submit data via the frontend form.
+    *   Verify that the data is correctly received and processed by the backend.
+    *   Confirm the backend's response is correctly handled by the frontend.
+*   [x] Perform end-to-end tests for voting:
+    *   Simulate accessing a voting link from the frontend.
+    *   Verify that application details are fetched correctly.
+    *   Submit a vote from the frontend and confirm it's processed by the backend.
+*   [x] Perform end-to-end tests for archive viewing:
+    *   Access the archive view on the frontend.
+    *   Verify that all application data, including vote details, is fetched and displayed correctly.
