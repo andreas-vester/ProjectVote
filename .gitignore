@@ -9,7 +9,13 @@ wheels/
 # Virtual environments
 .venv
 
+# IDE/editor specific files
 .history/
+.vscode/
+.idea/
+.mypy_cache/
+.pytest_cache/
+
 
 # Node.js
 node_modules/
@@ -23,3 +29,8 @@ yarn-error.log
 
 # Environment variables
 .env
+
+# Coverage reports
+.coverage
+htmlcov/
+coverage.xml
