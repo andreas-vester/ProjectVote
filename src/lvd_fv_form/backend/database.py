@@ -5,11 +5,13 @@ from collections.abc import AsyncGenerator
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
 
+from .config import Settings
+
 DATABASE_URL = "sqlite+aiosqlite:///./data/applications.db"
 
-echo = True  # Set to False in production
+settings = Settings()
 
-engine = create_async_engine(DATABASE_URL, echo=echo)
+engine = create_async_engine(DATABASE_URL, echo=settings.db_echo)
 
 AsyncSessionLocal = sessionmaker(
     bind=engine,

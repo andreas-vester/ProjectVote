@@ -21,6 +21,9 @@ class Settings(BaseSettings):
     mail_from_name: str = "LVD-FV Funding Portal"
     mail_driver: str = "console"
 
+    # Database settings
+    db_echo: bool = True
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",
