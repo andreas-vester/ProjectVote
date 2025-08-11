@@ -146,6 +146,39 @@ async def send_final_decision_emails(
     print("--- End of Simulation ---\n")
 
 
+async def _check_and_finalize_voting(
+    application_id: int,
+    db: Session,
+    board_members: list[str],
+) -> None:
+    """Check if all votes are cast and finalize the application status."""
+    application_result = await db.execute(
+        select(Application)
+        .where(Application.id == application_id)
+        .options(selectinload(Application.votes)),
+    )
+    application = application_result.scalar_one()
+
+    cast_votes = [v for v in application.votes if v.vote_status == VoteStatus.CAST]
+
+    # If all board members have voted, determine the outcome.
+    if len(cast_votes) >= len(board_members):
+        approvals = sum(1 for v in cast_votes if v.vote == VoteOption.APPROVE)
+        if approvals > len(board_members) / 2:
+            application.status = ApplicationStatus.APPROVED
+        else:
+            application.status = ApplicationStatus.REJECTED
+
+        await db.commit()
+        # Schedule the email sending as a background task
+        background_tasks = set()
+        task = asyncio.create_task(
+            send_final_decision_emails(application, board_members)
+        )
+        background_tasks.add(task)
+        task.add_done_callback(background_tasks.discard)
+
+
 # --- API Endpoints ---
 
 
@@ -234,29 +267,12 @@ async def cast_vote(
     vote_record.vote_status = VoteStatus.CAST
     await db.commit()
 
-    # Check if voting is complete
-    application_result = await db.execute(
-        select(Application)
-        .where(Application.id == vote_record.application_id)
-        .options(selectinload(Application.votes)),
+    # After a vote is cast, check if the voting process is complete.
+    await _check_and_finalize_voting(
+        vote_record.application_id,
+        db,
+        board_members,
     )
-    application = application_result.scalar_one()
-
-    cast_votes = [v for v in application.votes if v.vote_status == VoteStatus.CAST]
-
-    if len(cast_votes) >= len(board_members):
-        approvals = sum(1 for v in cast_votes if v.vote == VoteOption.APPROVE)
-        if approvals > len(board_members) / 2:
-            application.status = ApplicationStatus.APPROVED
-        else:
-            application.status = ApplicationStatus.REJECTED
-
-        await db.commit()
-        task = asyncio.create_task(
-            send_final_decision_emails(application, board_members),
-        )
-        # To prevent task from being GC'd
-        _ = task
 
     return {"message": "Vote cast successfully"}
 

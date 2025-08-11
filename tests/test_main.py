@@ -2,7 +2,7 @@
 
 from collections.abc import AsyncGenerator
 from http import HTTPStatus
-from pathlib import Path  # Import Path
+from pathlib import Path
 
 import pytest
 import pytest_asyncio
@@ -376,6 +376,39 @@ async def test_voting_conclusion(
     updated_app = await session.get(Application, app_id)
     assert updated_app is not None
     assert updated_app.status == expected_status
+
+
+@pytest.mark.asyncio
+async def test_view_applications(client: AsyncClient) -> None:
+    """Test that the /applications GET endpoint returns all applications."""
+    # 1. Create an application to ensure there's data to retrieve
+    app_data = {
+        "first_name": "View",
+        "last_name": "Test",
+        "applicant_email": "view.test@example.com",
+        "department": "QA",
+        "project_title": "Viewing Test",
+        "project_description": "A test for the view applications endpoint.",
+        "costs": 99.99,
+    }
+    await client.post("/applications", json=app_data)
+
+    # 2. Call the endpoint to view applications
+    response = await client.get("/applications")
+    assert response.status_code == HTTPStatus.OK
+
+    # 3. Verify the response
+    response_data = response.json()
+    assert isinstance(response_data, list)
+    assert len(response_data) == 1
+
+    retrieved_app = response_data[0]
+    assert retrieved_app["project_title"] == app_data["project_title"]
+    assert retrieved_app["status"] == ApplicationStatus.PENDING.value
+    assert "votes" in retrieved_app
+    assert isinstance(retrieved_app["votes"], list)
+    assert len(retrieved_app["votes"]) == len(TEST_BOARD_MEMBERS)
+    assert retrieved_app["votes"][0]["voter_email"] == TEST_BOARD_MEMBERS[0]
 
 
 def test_get_board_members_from_config(mocker: MockerFixture) -> None:
