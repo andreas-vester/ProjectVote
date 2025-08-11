@@ -99,7 +99,7 @@ const Archive: React.FC = () => {
   useEffect(() => {
     const fetchApplications = async () => {
       try {
-        const response = await axios.get<Application[]>('http://localhost:8001/applications');
+        const response = await axios.get<Application[]>('http://localhost:8001/applications/archive');
         setApplications(response.data);
       } catch (err) {
         setError('Fehler beim Abrufen der Anträge.');

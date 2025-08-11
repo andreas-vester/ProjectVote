@@ -8,7 +8,7 @@ from typing import Annotated
 from dotenv import load_dotenv
 from fastapi import Depends, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
@@ -86,6 +86,32 @@ class VoteCreate(BaseModel):
     """Schema for casting a vote."""
 
     decision: VoteOption
+
+
+class VoteOut(BaseModel):
+    """Schema for displaying a vote."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    voter_email: str
+    decision: VoteOption | None = Field(validation_alias="vote")
+
+
+class ApplicationOut(BaseModel):
+    """Schema for displaying an application in the archive."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    first_name: str
+    last_name: str
+    applicant_email: str
+    department: str
+    project_title: str
+    project_description: str
+    costs: float
+    status: ApplicationStatus
+    votes: list[VoteOut]
 
 
 # --- Email Simulation Functions ---
@@ -277,8 +303,10 @@ async def cast_vote(
     return {"message": "Vote cast successfully"}
 
 
-@app.get("/applications")
-async def view_applications(db: Annotated[Session, Depends(get_db)]) -> list:
+@app.get("/applications/archive", response_model=list[ApplicationOut])
+async def get_applications_archive(
+    db: Annotated[Session, Depends(get_db)],
+) -> list[ApplicationOut]:
     """Return a list of all applications with their current status and votes."""
     result = await db.execute(
         select(Application)
@@ -287,26 +315,4 @@ async def view_applications(db: Annotated[Session, Depends(get_db)]) -> list:
     )
     applications = result.scalars().unique().all()
 
-    applications_data = []
-    for app in applications:
-        app_data = {
-            "id": app.id,
-            "first_name": app.first_name,
-            "last_name": app.last_name,
-            "applicant_email": app.applicant_email,
-            "department": app.department,
-            "project_title": app.project_title,
-            "project_description": app.project_description,
-            "costs": app.costs,
-            "status": app.status.value,
-            "votes": [
-                {
-                    "voter_email": v.voter_email,
-                    "decision": v.vote.value if v.vote else None,
-                }
-                for v in app.votes
-            ],
-        }
-        applications_data.append(app_data)
-
-    return applications_data
+    return [ApplicationOut.model_validate(app) for app in applications]

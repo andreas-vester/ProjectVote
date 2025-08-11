@@ -379,8 +379,8 @@ async def test_voting_conclusion(
 
 
 @pytest.mark.asyncio
-async def test_view_applications(client: AsyncClient) -> None:
-    """Test that the /applications GET endpoint returns all applications."""
+async def test_get_applications_archive(client: AsyncClient) -> None:
+    """Test that the /applications/archive GET endpoint returns all applications."""
     # 1. Create an application to ensure there's data to retrieve
     app_data = {
         "first_name": "View",
@@ -394,7 +394,7 @@ async def test_view_applications(client: AsyncClient) -> None:
     await client.post("/applications", json=app_data)
 
     # 2. Call the endpoint to view applications
-    response = await client.get("/applications")
+    response = await client.get("/applications/archive")
     assert response.status_code == HTTPStatus.OK
 
     # 3. Verify the response

@@ -11,7 +11,7 @@ Create a backend API endpoint that provides access to a historical archive of al
 ## Tasks
 
 ### Phase 1: API Endpoint Definition
-*   [x] Choose an appropriate HTTP method (e.g., GET) and path (e.g., `/applications/archive` or `/applications`) for retrieving archived applications.
+*   [x] Choose an appropriate HTTP method (e.g., GET) and path (e.g., `/applications/archive`) for retrieving archived applications.
 *   [ ] Consider pagination or filtering parameters if the number of applications is expected to be large.
 
 ### Phase 2: Data Retrieval and Aggregation
