@@ -68,7 +68,7 @@ async def session_fixture() -> AsyncGenerator[AsyncSession, None]:
 
 @pytest_asyncio.fixture(name="client")
 async def client_fixture(
-    session: AsyncSession,
+    session: AsyncSession, mocker: MockerFixture
 ) -> AsyncGenerator[AsyncClient, None]:
     """Yield an AsyncClient for testing the FastAPI app."""
 
@@ -78,6 +78,11 @@ async def client_fixture(
     def get_test_board_members() -> list[str]:
         return TEST_BOARD_MEMBERS
 
+    # Mock the mailer and attach it to the app state
+    # This prevents real emails from being sent during tests
+    app.state.mailer = mocker.MagicMock()
+    app.state.mailer.send_message = mocker.AsyncMock()
+
     app.dependency_overrides[get_db] = get_test_db
     app.dependency_overrides[get_board_members] = get_test_board_members
 
@@ -86,6 +91,7 @@ async def client_fixture(
     ) as client:
         yield client
     app.dependency_overrides.clear()
+    del app.state.mailer
 
 
 @pytest.mark.asyncio
@@ -409,6 +415,39 @@ async def test_get_applications_archive(client: AsyncClient) -> None:
     assert isinstance(retrieved_app["votes"], list)
     assert len(retrieved_app["votes"]) == len(TEST_BOARD_MEMBERS)
     assert retrieved_app["votes"][0]["voter_email"] == TEST_BOARD_MEMBERS[0]
+
+
+@pytest.mark.asyncio
+async def test_email_sending_on_application_submission(
+    client: AsyncClient,
+) -> None:
+    """Test that emails are sent to board members on new application submission."""
+    # Reset the mock before the test to clear any previous calls
+    app.state.mailer.send_message.reset_mock()
+
+    application_data = {
+        "first_name": "Email",
+        "last_name": "Test",
+        "applicant_email": "email.test@example.com",
+        "department": "IT",
+        "project_title": "Email Sending Test",
+        "project_description": "A test to ensure emails are sent.",
+        "costs": 200.00,
+    }
+    response = await client.post("/applications", json=application_data)
+    assert response.status_code == HTTPStatus.OK
+
+    # Assert that send_message was called for each board member
+    assert app.state.mailer.send_message.call_count == len(TEST_BOARD_MEMBERS)
+
+    # Check the details of the first call to ensure the email is correct
+    first_call_args = app.state.mailer.send_message.call_args_list[0][0][0]
+    assert (
+        first_call_args.subject
+        == f"Neuer Förderantrag: {application_data['project_title']}"
+    )
+    assert first_call_args.recipients == [TEST_BOARD_MEMBERS[0]]
+    assert "vote_url" in first_call_args.template_body
 
 
 def test_get_board_members_from_config(mocker: MockerFixture) -> None:
