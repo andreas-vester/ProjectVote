@@ -1,4 +1,4 @@
-# Task 3.2: New Application Notification
+# Task 4.2: New Application Notification
 
 ## Goal
 Integrate the email service to automatically send notifications to all board members upon the successful submission of a new funding application.

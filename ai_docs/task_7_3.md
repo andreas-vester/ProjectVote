@@ -1,4 +1,4 @@
-# Task 5.3: Notifications & Alerts
+# Task 7.3: Notifications & Alerts
 
 ## Goal
 Implement a system for sending automated notifications and alerts to users (applicants, board members) regarding application status changes, upcoming deadlines, or other relevant events.

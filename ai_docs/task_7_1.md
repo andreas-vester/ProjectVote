@@ -1,4 +1,4 @@
-# Task 5.1: User Authentication & Authorization
+# Task 7.1: User Authentication & Authorization
 
 ## Goal
 Implement a secure system for user authentication and authorization, allowing different types of users (e.g., administrators, board members) to access specific functionalities.

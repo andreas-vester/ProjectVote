@@ -1,4 +1,4 @@
-# Task 4.2: Frontend Deployment Strategy
+# Task 6.2: Frontend Deployment Strategy
 
 ## Goal
 Define and implement a strategy for deploying the frontend application to a production environment, ensuring optimal performance and accessibility.

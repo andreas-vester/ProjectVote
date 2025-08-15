@@ -1,4 +1,4 @@
-# Task 3.2: Comprehensive End-to-End Tests
+# Task 5.2: Comprehensive End-to-End Tests
 
 ## Goal
 Develop and execute a suite of end-to-end tests to validate the complete functionality of the integrated backend and frontend application.

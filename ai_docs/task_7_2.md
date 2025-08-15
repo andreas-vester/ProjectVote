@@ -1,4 +1,4 @@
-# Task 5.2: Advanced Reporting
+# Task 7.2: Advanced Reporting
 
 ## Goal
 Develop features for generating reports and analytics based on application and voting data, providing insights into funding trends and board decisions.

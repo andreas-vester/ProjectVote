@@ -1,4 +1,4 @@
-# Task 4.3: Database Setup & Management
+# Task 6.3: Database Setup & Management
 
 ## Goal
 Establish a robust and maintainable database setup for the production environment, including initial setup, backups, and potential migrations.

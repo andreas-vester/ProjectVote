@@ -1,4 +1,4 @@
-# Task 4.1: Backend Deployment Strategy
+# Task 6.1: Backend Deployment Strategy
 
 ## Goal
 Define and implement a strategy for deploying the backend API to a production environment, ensuring scalability, reliability, and security.

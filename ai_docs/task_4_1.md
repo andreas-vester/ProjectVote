@@ -1,4 +1,4 @@
-# Task 3.1: Email Service Configuration
+# Task 4.1: Email Service Configuration
 
 ## Goal
 Configure a reliable email service to handle all outgoing email notifications from the application, ensuring a clear separation of configuration for different environments.
@@ -17,14 +17,14 @@ Configure a reliable email service to handle all outgoing email notifications fr
 *   [x] Store API keys securely using environment variables or a secrets management tool.
 
 ### Phase 2: Configuration Module
-*   [x] Create a new module (e.g., `email_service.py`) in the backend.
+*   [ ] Create a new module (e.g., `email_service.py`) in the backend.
 *   [x] Implement a function to load email configuration (e.g., API key, sender email) from environment variables.
 *   [x] Use Pydantic for configuration validation.
 
 ### Phase 3: Reusable Email Function
-*   [x] Create a generic function (e.g., `send_email`) that takes the recipient, subject, and body as arguments.
+*   [ ] Create a generic function (e.g., `send_email`) that takes the recipient, subject, and body as arguments.
 *   [x] This function should use the chosen email service's API to send the email.
-*   [x] Implement basic error handling for email sending failures.
+*   [ ] Implement basic error handling for email sending failures.
 
 ### Phase 4: Testability
 *   [x] Ensure the `send_email` function can be easily mocked in tests to prevent actual emails from being sent during test runs.

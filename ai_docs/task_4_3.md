@@ -1,4 +1,4 @@
-# Task 3.3: Final Decision Notification
+# Task 4.3: Final Decision Notification
 
 ## Goal
 Automate the sending of final decision emails to both the applicant and all board members once voting on an application is complete.
