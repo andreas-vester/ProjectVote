@@ -9,7 +9,8 @@ from fastapi import Depends, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy import select
-from sqlalchemy.orm import Session, selectinload
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from .config import Settings
 from .database import engine, get_db
@@ -125,7 +126,7 @@ class ApplicationOut(BaseModel):
 
 async def send_voting_links(
     application: Application,
-    db: Session,
+    db: AsyncSession,
     board_members: list[str],
 ) -> None:
     """Generate vote records and sends emails with unique links."""
@@ -157,13 +158,13 @@ async def send_final_decision_emails(
     """Send final decision emails to the applicant and board members."""
     # Notification to Applicant
     await send_email(
-        recipients=[application.applicant_email],
+        recipients=[application.applicant_email],  # type: ignore[arg-type]
         subject=f"Entscheidung über Ihren Antrag: {application.project_title}",
         template_body={
             "first_name": application.first_name,
             "last_name": application.last_name,
             "project_title": application.project_title,
-            "status": application.status.value.upper(),
+            "status": application.status.upper(),
         },
         template_name="final_decision_applicant.html",
     )
@@ -174,7 +175,7 @@ async def send_final_decision_emails(
         subject=f"Abstimmung abgeschlossen für: {application.project_title}",
         template_body={
             "project_title": application.project_title,
-            "status": application.status.value.upper(),
+            "status": application.status.upper(),
         },
         template_name="final_decision_board.html",
     )
@@ -182,7 +183,7 @@ async def send_final_decision_emails(
 
 async def _check_and_finalize_voting(
     application_id: int,
-    db: Session,
+    db: AsyncSession,
     board_members: list[str],
 ) -> None:
     """Check if all votes are cast and finalize the application status."""
@@ -199,9 +200,9 @@ async def _check_and_finalize_voting(
     if len(cast_votes) >= len(board_members):
         approvals = sum(1 for v in cast_votes if v.vote == VoteOption.APPROVE)
         if approvals > len(board_members) / 2:
-            application.status = ApplicationStatus.APPROVED
+            application.status = ApplicationStatus.APPROVED.value  # type: ignore[attr-defined]
         else:
-            application.status = ApplicationStatus.REJECTED
+            application.status = ApplicationStatus.REJECTED.value  # type: ignore[attr-defined]
 
         await db.commit()
         await send_final_decision_emails(application, board_members)
@@ -219,13 +220,13 @@ async def read_root() -> dict:
 @app.post("/applications")
 async def submit_application(
     application_data: ApplicationCreate,
-    db: Annotated[Session, Depends(get_db)],
+    db: Annotated[AsyncSession, Depends(get_db)],
     board_members: Annotated[list[str], Depends(get_board_members)],
 ) -> dict:
     """Create a new application and trigger the voting process."""
     new_application = Application(
         **application_data.model_dump(),
-        status=ApplicationStatus.PENDING,
+        status=ApplicationStatus.PENDING.value,
     )
     db.add(new_application)
     await db.flush()  # Flush to get the application ID before creating vote records
@@ -242,7 +243,9 @@ async def submit_application(
 
 
 @app.get("/vote/{token}")
-async def get_vote_details(token: str, db: Annotated[Session, Depends(get_db)]) -> dict:
+async def get_vote_details(
+    token: str, db: Annotated[AsyncSession, Depends(get_db)]
+) -> dict:
     """Fetch application details using a secure token."""
     result = await db.execute(
         select(VoteRecord)
@@ -254,7 +257,7 @@ async def get_vote_details(token: str, db: Annotated[Session, Depends(get_db)]) 
     if not vote_record:
         raise HTTPException(status_code=404, detail="Invalid or expired token.")
 
-    if vote_record.vote_status == VoteStatus.CAST:
+    if vote_record.vote_status == VoteStatus.CAST.value:  # type: ignore[truthy-bool]
         raise HTTPException(status_code=400, detail="This vote has already been cast.")
 
     app = vote_record.application
@@ -277,7 +280,7 @@ async def get_vote_details(token: str, db: Annotated[Session, Depends(get_db)]) 
 async def cast_vote(
     token: str,
     vote_data: VoteCreate,
-    db: Annotated[Session, Depends(get_db)],
+    db: Annotated[AsyncSession, Depends(get_db)],
     board_members: Annotated[list[str], Depends(get_board_members)],
 ) -> dict:
     """Cast a vote using a secure token and checks if voting is complete."""
@@ -287,17 +290,17 @@ async def cast_vote(
     if not vote_record:
         raise HTTPException(status_code=404, detail="Invalid or expired token.")
 
-    if vote_record.vote_status == VoteStatus.CAST:
+    if vote_record.vote_status == VoteStatus.CAST.value:  # type: ignore[truthy-bool]
         raise HTTPException(status_code=400, detail="Vote has already been cast.")
 
     # Update vote record
-    vote_record.vote = vote_data.decision
-    vote_record.vote_status = VoteStatus.CAST
+    vote_record.vote = vote_data.decision.value  # type: ignore[attr-defined]
+    vote_record.vote_status = VoteStatus.CAST.value  # type: ignore[attr-defined]
     await db.commit()
 
     # After a vote is cast, check if the voting process is complete.
     await _check_and_finalize_voting(
-        vote_record.application_id,
+        int(vote_record.application_id),  # type: ignore[arg-type]
         db,
         board_members,
     )
@@ -307,7 +310,7 @@ async def cast_vote(
 
 @app.get("/applications/archive")
 async def get_applications_archive(
-    db: Annotated[Session, Depends(get_db)],
+    db: Annotated[AsyncSession, Depends(get_db)],
 ) -> list[ApplicationOut]:
     """Return a list of all applications with their current status and votes."""
     result = await db.execute(

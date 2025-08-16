@@ -9,8 +9,7 @@ import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
 from pytest_mock import MockerFixture
 from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 from lvd_fv_form.backend.config import Settings
 from lvd_fv_form.backend.database import DATABASE_URL, get_db
@@ -42,9 +41,8 @@ test_db_path.parent.mkdir(parents=True, exist_ok=True)
 test_engine = create_async_engine(
     f"sqlite+aiosqlite:///./{test_db_filename}", echo=False
 )
-TestSessionLocal = sessionmaker(
+TestSessionLocal = async_sessionmaker(
     bind=test_engine,
-    class_=AsyncSession,
     expire_on_commit=False,
 )
 
@@ -133,7 +131,10 @@ async def test_create_application(
     assert len(vote_records) == len(TEST_BOARD_MEMBERS)
     for record in vote_records:
         assert record.token is not None
-        assert record.vote_status == VoteStatus.PENDING
+        actual_status = getattr(record, "vote_status", None)
+        if actual_status is not None and hasattr(actual_status, "value"):
+            actual_status = actual_status.value
+        assert actual_status == VoteStatus.PENDING.value
 
     # Verify that email sending was triggered
     assert send_email_mock.call_count == len(TEST_BOARD_MEMBERS)
@@ -311,8 +312,15 @@ async def test_cast_vote_scenarios(
         assert response.json() == {"message": expected_message}
         # Verify vote record was updated for success case
         await session.refresh(vote_record)
-        assert vote_record.vote == vote_decision
-        assert vote_record.vote_status == VoteStatus.CAST
+        actual_vote = getattr(vote_record, "vote", None)
+        if actual_vote is not None and hasattr(actual_vote, "value"):
+            actual_vote = actual_vote.value
+        assert actual_vote == vote_decision.value
+
+        actual_vote_status = getattr(vote_record, "vote_status", None)
+        if actual_vote_status is not None and hasattr(actual_vote_status, "value"):
+            actual_vote_status = actual_vote_status.value
+        assert actual_vote_status == VoteStatus.CAST.value
     else:
         assert response.json() == {"detail": expected_message}
 
@@ -398,7 +406,10 @@ async def test_voting_conclusion(
     # Verify the application status
     updated_app = await session.get(Application, app_id)
     assert updated_app is not None
-    assert updated_app.status == expected_status
+    actual_status = getattr(updated_app, "status", None)
+    if actual_status is not None and hasattr(actual_status, "value"):
+        actual_status = actual_status.value
+    assert actual_status == expected_status.value
 
     # Verify that final decision emails were sent
     assert send_email_mock.call_count == EMAILS_SENT_FOR_FINAL_DECISION
