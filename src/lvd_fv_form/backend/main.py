@@ -146,6 +146,7 @@ async def send_voting_links(
                 "first_name": application.first_name,
                 "last_name": application.last_name,
                 "project_title": application.project_title,
+                "costs": application.costs,
                 "vote_url": vote_url,
             },
             template_name="new_application.html",

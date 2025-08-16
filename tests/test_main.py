@@ -139,6 +139,15 @@ async def test_create_application(
     # Verify that email sending was triggered
     assert send_email_mock.call_count == len(TEST_BOARD_MEMBERS)
 
+    # Verify that the email body contains the correct data
+    first_call_args = send_email_mock.call_args_list[0]
+    template_body = first_call_args.kwargs["template_body"]
+    assert template_body["first_name"] == application_data["first_name"]
+    assert template_body["last_name"] == application_data["last_name"]
+    assert template_body["project_title"] == application_data["project_title"]
+    assert template_body["costs"] == application_data["costs"]
+    assert "vote_url" in template_body
+
 
 @pytest.mark.parametrize(
     ("scenario", "token_to_use", "expected_status_code", "expected_detail"),

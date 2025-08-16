@@ -10,18 +10,18 @@ Integrate the email service to automatically send notifications to all board mem
 
 ## Tasks
 
-### Phase 1: Integration with Submission Endpoint
-*   [ ] In the `/applications` endpoint in `main.py`, after a new application is successfully created and vote records are generated, call the `send_email` function.
-*   [ ] Loop through each board member and send them a personalized email.
-
-### Phase 2: Email Template
-*   [ ] Design a clear and informative email template.
-*   [ ] The template should include:
+### Phase 1: Email Template
+*   [x] Design a clear and informative email template.
+*   [x] The template should include:
     *   The project title.
     *   The applicant's name.
     *   The estimated costs.
     *   A direct, unique link to the voting page (e.g., `http://localhost:5173/vote/{token}`).
-*   [ ] Consider using a simple HTML template for better formatting.
+*   [x] Consider using a simple HTML template for better formatting.
+
+### Phase 2: Integration with Submission Endpoint
+*   [x] In the `/applications` endpoint in `main.py`, after a new application is successfully created and vote records are generated, call the `send_email` function.
+*   [x] Loop through each board member and send them a personalized email.
 
 ### Phase 3: Verification
 *   [ ] During development, use a tool like MailHog or a similar local SMTP server to capture and inspect outgoing emails.
