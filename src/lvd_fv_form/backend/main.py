@@ -1,20 +1,19 @@
 """FastAPI application for the LVD-FV form submission and voting system."""
 
-import asyncio
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
-from typing import Annotated, cast
+from typing import Annotated
 
 from dotenv import load_dotenv
 from fastapi import Depends, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi_mail import ConnectionConfig, FastMail, MessageSchema, MessageType
-from pydantic import BaseModel, ConfigDict, Field, SecretStr
+from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
 from .config import Settings
 from .database import engine, get_db
+from .email_service import send_email
 from .models import (
     Application,
     ApplicationStatus,
@@ -28,28 +27,11 @@ load_dotenv()
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
+async def lifespan(_: FastAPI) -> AsyncGenerator[None, None]:
     """Handle application startup and shutdown events."""
     # Database table creation
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
-
-    # Mailer setup
-    settings = get_app_settings()
-    conf = ConnectionConfig(
-        MAIL_USERNAME=settings.mail_username,
-        MAIL_PASSWORD=cast("SecretStr", settings.mail_password),
-        MAIL_FROM=settings.mail_from,
-        MAIL_PORT=settings.mail_port,
-        MAIL_SERVER=settings.mail_server,
-        MAIL_STARTTLS=settings.mail_starttls,
-        MAIL_SSL_TLS=settings.mail_ssl_tls,
-        MAIL_FROM_NAME=settings.mail_from_name,
-        USE_CREDENTIALS=True,
-        VALIDATE_CERTS=True,
-        TEMPLATE_FOLDER="./src/lvd_fv_form/backend/templates/email",
-    )
-    app.state.mailer = FastMail(conf)
 
     yield
 
@@ -156,19 +138,16 @@ async def send_voting_links(
         await db.refresh(vote_record)
 
         vote_url = f"http://localhost:5173/vote/{vote_record.token}"
-        message = MessageSchema(
-            subject=f"Neuer Förderantrag: {application.project_title}",
+        await send_email(
             recipients=[member_email],
+            subject=f"Neuer Förderantrag: {application.project_title}",
             template_body={
                 "first_name": application.first_name,
                 "last_name": application.last_name,
                 "project_title": application.project_title,
                 "vote_url": vote_url,
             },
-            subtype=MessageType.html,
-        )
-        await app.state.mailer.send_message(
-            message, template_name="new_application.html"
+            template_name="new_application.html",
         )
 
 
@@ -177,33 +156,27 @@ async def send_final_decision_emails(
 ) -> None:
     """Send final decision emails to the applicant and board members."""
     # Notification to Applicant
-    applicant_message = MessageSchema(
-        subject=f"Entscheidung über Ihren Antrag: {application.project_title}",
+    await send_email(
         recipients=[application.applicant_email],
+        subject=f"Entscheidung über Ihren Antrag: {application.project_title}",
         template_body={
             "first_name": application.first_name,
             "last_name": application.last_name,
             "project_title": application.project_title,
             "status": application.status.value.upper(),
         },
-        subtype=MessageType.html,
-    )
-    await app.state.mailer.send_message(
-        applicant_message, template_name="final_decision_applicant.html"
+        template_name="final_decision_applicant.html",
     )
 
     # Notification to Board Members
-    board_message = MessageSchema(
-        subject=f"Abstimmung abgeschlossen für: {application.project_title}",
+    await send_email(
         recipients=board_members,
+        subject=f"Abstimmung abgeschlossen für: {application.project_title}",
         template_body={
             "project_title": application.project_title,
             "status": application.status.value.upper(),
         },
-        subtype=MessageType.html,
-    )
-    await app.state.mailer.send_message(
-        board_message, template_name="final_decision_board.html"
+        template_name="final_decision_board.html",
     )
 
 
@@ -231,13 +204,7 @@ async def _check_and_finalize_voting(
             application.status = ApplicationStatus.REJECTED
 
         await db.commit()
-        # Schedule the email sending as a background task
-        background_tasks = set()
-        task = asyncio.create_task(
-            send_final_decision_emails(application, board_members)
-        )
-        background_tasks.add(task)
-        task.add_done_callback(background_tasks.discard)
+        await send_final_decision_emails(application, board_members)
 
 
 # --- API Endpoints ---

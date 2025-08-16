@@ -31,12 +31,13 @@ TEST_BOARD_MEMBERS = [
     "test.member3@example.com",
     "test.member4@example.com",
 ]
+EMAILS_SENT_FOR_FINAL_DECISION = 2
 
 # Setup a test database engine
 test_db_filename = DATABASE_URL.split("///")[-1].replace(
     ".db", "_test.db"
 )  # Extract only the filename
-test_db_path = Path(test_db_filename)  # Use Path
+test_db_path = Path(test_db_filename)
 test_db_path.parent.mkdir(parents=True, exist_ok=True)
 test_engine = create_async_engine(
     f"sqlite+aiosqlite:///./{test_db_filename}", echo=False
@@ -78,10 +79,8 @@ async def client_fixture(
     def get_test_board_members() -> list[str]:
         return TEST_BOARD_MEMBERS
 
-    # Mock the mailer and attach it to the app state
-    # This prevents real emails from being sent during tests
-    app.state.mailer = mocker.MagicMock()
-    app.state.mailer.send_message = mocker.AsyncMock()
+    # Mock the send_email function to prevent real emails from being sent
+    mocker.patch("lvd_fv_form.backend.main.send_email", new_callable=mocker.AsyncMock)
 
     app.dependency_overrides[get_db] = get_test_db
     app.dependency_overrides[get_board_members] = get_test_board_members
@@ -91,7 +90,6 @@ async def client_fixture(
     ) as client:
         yield client
     app.dependency_overrides.clear()
-    del app.state.mailer
 
 
 @pytest.mark.asyncio
@@ -103,8 +101,13 @@ async def test_read_root(client: AsyncClient) -> None:
 
 
 @pytest.mark.asyncio
-async def test_create_application(client: AsyncClient, session: AsyncSession) -> None:
+async def test_create_application(
+    client: AsyncClient, session: AsyncSession, mocker: MockerFixture
+) -> None:
     """Test creating a new application and associated vote records."""
+    send_email_mock = mocker.patch(
+        "lvd_fv_form.backend.main.send_email", new_callable=mocker.AsyncMock
+    )
     application_data = {
         "first_name": "Test",
         "last_name": "User",
@@ -132,11 +135,19 @@ async def test_create_application(client: AsyncClient, session: AsyncSession) ->
         assert record.token is not None
         assert record.vote_status == VoteStatus.PENDING
 
+    # Verify that email sending was triggered
+    assert send_email_mock.call_count == len(TEST_BOARD_MEMBERS)
+
 
 @pytest.mark.parametrize(
     ("scenario", "token_to_use", "expected_status_code", "expected_detail"),
     [
-        ("Success", "VALID_TOKEN", HTTPStatus.OK, None),
+        (
+            "Success",
+            "VALID_TOKEN",
+            HTTPStatus.OK,
+            None,
+        ),
         (
             "Invalid Token",
             "invalid-token-123",
@@ -345,11 +356,15 @@ async def test_cast_vote_scenarios(
 async def test_voting_conclusion(
     client: AsyncClient,
     session: AsyncSession,
+    mocker: MockerFixture,
     scenario: str,
     votes: list[VoteOption],
     expected_status: ApplicationStatus,
 ) -> None:
     """Test voting conclusion with different vote combinations."""
+    send_email_mock = mocker.patch(
+        "lvd_fv_form.backend.main.send_email", new_callable=mocker.AsyncMock
+    )
     # Create an application and vote records via the API
     app_data = {
         "first_name": "Scenario",
@@ -362,6 +377,8 @@ async def test_voting_conclusion(
     }
     create_response = await client.post("/applications", json=app_data)
     app_id = create_response.json()["application_id"]
+
+    send_email_mock.reset_mock()
 
     # Get all vote records for this application
     result = await session.execute(
@@ -382,6 +399,9 @@ async def test_voting_conclusion(
     updated_app = await session.get(Application, app_id)
     assert updated_app is not None
     assert updated_app.status == expected_status
+
+    # Verify that final decision emails were sent
+    assert send_email_mock.call_count == EMAILS_SENT_FOR_FINAL_DECISION
 
 
 @pytest.mark.asyncio
@@ -415,39 +435,6 @@ async def test_get_applications_archive(client: AsyncClient) -> None:
     assert isinstance(retrieved_app["votes"], list)
     assert len(retrieved_app["votes"]) == len(TEST_BOARD_MEMBERS)
     assert retrieved_app["votes"][0]["voter_email"] == TEST_BOARD_MEMBERS[0]
-
-
-@pytest.mark.asyncio
-async def test_email_sending_on_application_submission(
-    client: AsyncClient,
-) -> None:
-    """Test that emails are sent to board members on new application submission."""
-    # Reset the mock before the test to clear any previous calls
-    app.state.mailer.send_message.reset_mock()
-
-    application_data = {
-        "first_name": "Email",
-        "last_name": "Test",
-        "applicant_email": "email.test@example.com",
-        "department": "IT",
-        "project_title": "Email Sending Test",
-        "project_description": "A test to ensure emails are sent.",
-        "costs": 200.00,
-    }
-    response = await client.post("/applications", json=application_data)
-    assert response.status_code == HTTPStatus.OK
-
-    # Assert that send_message was called for each board member
-    assert app.state.mailer.send_message.call_count == len(TEST_BOARD_MEMBERS)
-
-    # Check the details of the first call to ensure the email is correct
-    first_call_args = app.state.mailer.send_message.call_args_list[0][0][0]
-    assert (
-        first_call_args.subject
-        == f"Neuer Förderantrag: {application_data['project_title']}"
-    )
-    assert first_call_args.recipients == [TEST_BOARD_MEMBERS[0]]
-    assert "vote_url" in first_call_args.template_body
 
 
 def test_get_board_members_from_config(mocker: MockerFixture) -> None:

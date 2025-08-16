@@ -12,19 +12,19 @@ Configure a reliable email service to handle all outgoing email notifications fr
 ## Tasks
 
 ### Phase 1: Service Selection and Setup
-*   [x] Research and choose an email service provider (e.g., SendGrid, Mailgun, Amazon SES).
+*   [x] Research and choose an email service provider (e.g., SendGrid, Mailgun, Brevo).
 *   [x] Create an account and obtain API keys for development and production environments.
 *   [x] Store API keys securely using environment variables or a secrets management tool.
 
 ### Phase 2: Configuration Module
-*   [ ] Create a new module (e.g., `email_service.py`) in the backend.
+*   [x] Create a new module (e.g., `email_service.py`) in the backend.
 *   [x] Implement a function to load email configuration (e.g., API key, sender email) from environment variables.
 *   [x] Use Pydantic for configuration validation.
 
 ### Phase 3: Reusable Email Function
-*   [ ] Create a generic function (e.g., `send_email`) that takes the recipient, subject, and body as arguments.
+*   [x] Create a generic function (e.g., `send_email`) that takes the recipient, subject, and body as arguments.
 *   [x] This function should use the chosen email service's API to send the email.
-*   [ ] Implement basic error handling for email sending failures.
+*   [x] Implement basic error handling for email sending failures.
 
 ### Phase 4: Testability
 *   [x] Ensure the `send_email` function can be easily mocked in tests to prevent actual emails from being sent during test runs.
