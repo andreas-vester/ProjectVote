@@ -24,6 +24,6 @@ Integrate the email service to automatically send notifications to all board mem
 *   [x] Loop through each board member and send them a personalized email.
 
 ### Phase 3: Verification
-*   [ ] During development, use a tool like MailHog or a similar local SMTP server to capture and inspect outgoing emails.
-*   [ ] Verify that each board member receives an email with the correct, unique voting link.
-*   [ ] Confirm that the email content accurately reflects the submitted application details.
+*   [x] During development, use a tool like MailHog or a similar local SMTP server to capture and inspect outgoing emails.
+*   [x] Verify that each board member receives an email with the correct, unique voting link.
+*   [x] Confirm that the email content accurately reflects the submitted application details.

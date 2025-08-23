@@ -30,7 +30,7 @@ TEST_BOARD_MEMBERS = [
     "test.member3@example.com",
     "test.member4@example.com",
 ]
-EMAILS_SENT_FOR_FINAL_DECISION = 2
+EMAILS_SENT_FOR_FINAL_DECISION = 5
 
 # Setup a test database engine
 test_db_filename = DATABASE_URL.split("///")[-1].replace(
