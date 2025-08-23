@@ -3,6 +3,7 @@
 import pytest
 from pytest_mock import MockerFixture
 
+from lvd_fv_form.backend.config import Settings
 from lvd_fv_form.backend.email_service import send_email
 
 
@@ -18,9 +19,10 @@ async def test_send_email(mocker: MockerFixture) -> None:
     subject = "Test Subject"
     template_body = {"key": "value"}
     template_name = "test_template.html"
+    settings = Settings(board_members="test1@example.com,test2@example.com")
 
     # Act
-    await send_email(recipients, subject, template_body, template_name)
+    await send_email(recipients, subject, template_body, template_name, settings)
 
     # Assert
     mock_send.assert_called_once()

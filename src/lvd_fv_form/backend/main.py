@@ -1,7 +1,9 @@
 """FastAPI application for the LVD-FV form submission and voting system."""
 
+import os
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
+from pathlib import Path
 from typing import Annotated
 
 from dotenv import load_dotenv
@@ -23,8 +25,6 @@ from .models import (
     VoteRecord,
     VoteStatus,
 )
-
-load_dotenv()
 
 
 @asynccontextmanager
@@ -54,16 +54,26 @@ app.add_middleware(
 
 
 def get_app_settings() -> Settings:
-    """Return application settings."""
-    settings_instance = Settings()
-    if settings_instance.board_members is None:
-        raise ValueError("BOARD_MEMBERS environment variable is not set.")
-    if settings_instance.mail_password is None:
-        raise ValueError("MAIL_PASSWORD environment variable is not set.")
-    assert (
-        settings_instance.mail_password is not None
-    )  # Type narrowing for static analysis
-    return settings_instance
+    """
+    Return application settings.
+
+    This function loads the correct .env file based on the APP_ENV
+    environment variable.
+    """
+    app_env = os.getenv("APP_ENV", "production")
+
+    if app_env == "development":
+        dotenv_path = (
+            Path(__file__).resolve().parent.parent.parent.parent / ".env.local"
+        )
+        if dotenv_path.exists():
+            load_dotenv(dotenv_path=dotenv_path, override=True)
+    elif app_env == "testing":
+        dotenv_path = Path(__file__).resolve().parent.parent.parent.parent / ".env"
+        if dotenv_path.exists():
+            load_dotenv(dotenv_path=dotenv_path, override=True)
+
+    return Settings()
 
 
 def get_board_members(
@@ -128,6 +138,7 @@ async def send_voting_links(
     application: Application,
     db: AsyncSession,
     board_members: list[str],
+    settings: Settings,
 ) -> None:
     """Generate vote records and sends emails with unique links."""
     for member_email in board_members:
@@ -150,11 +161,12 @@ async def send_voting_links(
                 "vote_url": vote_url,
             },
             template_name="new_application.html",
+            settings=settings,
         )
 
 
 async def send_final_decision_emails(
-    application: Application, board_members: list[str]
+    application: Application, board_members: list[str], settings: Settings
 ) -> None:
     """Send final decision emails to the applicant and board members."""
     # Notification to Applicant
@@ -168,24 +180,28 @@ async def send_final_decision_emails(
             "status": application.status.upper(),
         },
         template_name="final_decision_applicant.html",
+        settings=settings,
     )
 
     # Notification to Board Members
-    await send_email(
-        recipients=board_members,
-        subject=f"Abstimmung abgeschlossen für: {application.project_title}",
-        template_body={
-            "project_title": application.project_title,
-            "status": application.status.upper(),
-        },
-        template_name="final_decision_board.html",
-    )
+    for member_email in board_members:
+        await send_email(
+            recipients=[member_email],
+            subject=f"Abstimmung abgeschlossen für: {application.project_title}",
+            template_body={
+                "project_title": application.project_title,
+                "status": application.status.upper(),
+            },
+            template_name="final_decision_board.html",
+            settings=settings,
+        )
 
 
 async def _check_and_finalize_voting(
     application_id: int,
     db: AsyncSession,
     board_members: list[str],
+    settings: Settings,
 ) -> None:
     """Check if all votes are cast and finalize the application status."""
     application_result = await db.execute(
@@ -206,7 +222,7 @@ async def _check_and_finalize_voting(
             application.status = ApplicationStatus.REJECTED.value  # type: ignore[attr-defined]
 
         await db.commit()
-        await send_final_decision_emails(application, board_members)
+        await send_final_decision_emails(application, board_members, settings)
 
 
 # --- API Endpoints ---
@@ -223,6 +239,7 @@ async def submit_application(
     application_data: ApplicationCreate,
     db: Annotated[AsyncSession, Depends(get_db)],
     board_members: Annotated[list[str], Depends(get_board_members)],
+    settings: Annotated[Settings, Depends(get_app_settings)],
 ) -> dict:
     """Create a new application and trigger the voting process."""
     new_application = Application(
@@ -234,7 +251,7 @@ async def submit_application(
     await db.refresh(new_application)
 
     # Generate vote records and send links
-    await send_voting_links(new_application, db, board_members)
+    await send_voting_links(new_application, db, board_members, settings)
     await db.commit()  # Commit all changes (application and vote records) here
 
     return {
@@ -283,6 +300,7 @@ async def cast_vote(
     vote_data: VoteCreate,
     db: Annotated[AsyncSession, Depends(get_db)],
     board_members: Annotated[list[str], Depends(get_board_members)],
+    settings: Annotated[Settings, Depends(get_app_settings)],
 ) -> dict:
     """Cast a vote using a secure token and checks if voting is complete."""
     result = await db.execute(select(VoteRecord).where(VoteRecord.token == token))
@@ -304,6 +322,7 @@ async def cast_vote(
         int(vote_record.application_id),  # type: ignore[arg-type]
         db,
         board_members,
+        settings,
     )
 
     return {"message": "Vote cast successfully"}
