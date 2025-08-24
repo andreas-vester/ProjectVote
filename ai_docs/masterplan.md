@@ -20,6 +20,7 @@ This document outlines the high-level development phases for the Funding Applica
 ### 3.1 Environment Variable Setup
 ### 3.2 Central Configuration Module
 ### 3.3 Board Member Configuration
+### 3.4 Personalized Board Member Emails
 
 ## 4. Email Integration
 ### 4.1 Email Service Configuration
