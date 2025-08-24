@@ -11,19 +11,19 @@ Automate the sending of final decision emails to both the applicant and all boar
 ## Tasks
 
 ### Phase 1: Integration with Voting Logic
-*   [ ] In the `/vote/{token}` endpoint, after the final vote is cast and the application status is updated, trigger the email notification process.
-*   [ ] Call the `send_email` function to notify the applicant and all board members.
+*   [x] In the `/vote/{token}` endpoint, after the final vote is cast and the application status is updated, trigger the email notification process.
+*   [x] Call the `send_email` function to notify the applicant and all board members.
 
 ### Phase 2: Applicant Email Template
-*   [ ] Design an email template for the applicant.
-*   [ ] The template should:
+*   [x] Design an email template for the applicant.
+*   [x] The template should:
     *   Clearly state the final decision (approved or rejected).
     *   Include the project title.
     *   Thank the applicant for their submission.
 
 ### Phase 3: Board Member Email Template
-*   [ ] Design an email template for the board members.
-*   [ ] The template should:
+*   [x] Design an email template for the board members.
+*   [x] The template should:
     *   Announce that voting is complete for a specific application.
     *   State the final outcome.
 

@@ -6,7 +6,7 @@ This document outlines the high-level development phases for the Funding Applica
 ### 1.1 Database Schema Definition
 ### 1.2 Application Submission API
 ### 1.3 Voting Process API
-### 1.4 Application Archive API
+
 ### 1.5 Board Member Management (Dependency Injection)
 
 ## 2. Core Frontend Development
