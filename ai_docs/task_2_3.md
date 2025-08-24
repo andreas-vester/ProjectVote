@@ -28,4 +28,5 @@ Develop a frontend component that displays a comprehensive archive of all fundin
 ### Phase 4: User Experience and Interactivity
 *   [x] Ensure smooth transitions for expanding/collapsing vote details.
 *   [x] Implement basic styling for readability and visual appeal.
-*   [ ] Consider adding filtering or sorting options if the archive is expected to grow large.
+*   [x] Add a scrollbar.
+*   [x] Consider adding filtering or sorting options if the archive is expected to grow large.

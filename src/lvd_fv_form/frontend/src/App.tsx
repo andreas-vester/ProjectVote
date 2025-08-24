@@ -19,7 +19,7 @@ function App() {
           <Button color="inherit" component={RouterLink} to="/archive">Archiv</Button>
         </Toolbar>
       </AppBar>
-      <Container component="main" sx={{ mt: 4, mb: 4 }}>
+      <Container component="main" sx={{ mt: 4, mb: 4 }} maxWidth="lg">
         <Routes>
           <Route path="/" element={<Typography>Willkommen bei der Antragsverwaltung.</Typography>} />
           <Route path="/new" element={<ApplicationForm />} />

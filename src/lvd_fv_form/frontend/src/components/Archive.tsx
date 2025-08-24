@@ -14,6 +14,8 @@ import {
   Collapse,
   Box,
   IconButton,
+  TableSortLabel,
+  TextField,
 } from '@mui/material';
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
@@ -95,6 +97,9 @@ const Archive: React.FC = () => {
   const [applications, setApplications] = useState<Application[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const [filterText, setFilterText] = useState('');
+  const [orderBy, setOrderBy] = useState<keyof Application>('id');
+  const [order, setOrder] = useState<'asc' | 'desc'>('desc');
 
   useEffect(() => {
     const fetchApplications = async () => {
@@ -112,6 +117,26 @@ const Archive: React.FC = () => {
     fetchApplications();
   }, []);
 
+  const handleRequestSort = (property: keyof Application) => {
+    const isAsc = orderBy === property && order === 'asc';
+    setOrder(isAsc ? 'desc' : 'asc');
+    setOrderBy(property);
+  };
+
+  const sortedAndFilteredApplications = applications
+    .filter((app) =>
+      app.project_title.toLowerCase().includes(filterText.toLowerCase())
+    )
+    .sort((a, b) => {
+      if (a[orderBy] < b[orderBy]) {
+        return order === 'asc' ? -1 : 1;
+      }
+      if (a[orderBy] > b[orderBy]) {
+        return order === 'asc' ? 1 : -1;
+      }
+      return 0;
+    });
+
   if (loading) {
     return <CircularProgress />;
   }
@@ -121,34 +146,79 @@ const Archive: React.FC = () => {
   }
 
   return (
-    <Paper sx={{ width: '100%', overflow: 'hidden' }}>
+    <Paper sx={{ width: '100%', overflow: 'hidden', minHeight: 600 }}>
       <Typography variant="h4" component="h1" gutterBottom sx={{ p: 2 }}>
         Antragsarchiv
       </Typography>
-      {applications.length === 0 ? (
-        <Typography sx={{ p: 2 }}>Bisher wurden keine Anträge gestellt.</Typography>
-      ) : (
-        <TableContainer>
-          <Table stickyHeader aria-label="sticky table">
+      <Box sx={{ p: 2 }}>
+        <TextField
+          label="Filter by Project Title"
+          variant="outlined"
+          fullWidth
+          value={filterText}
+          onChange={(e) => setFilterText(e.target.value)}
+        />
+      </Box>
+      <TableContainer sx={{ height: 440, overflowY: 'scroll' }}>
+          <Table stickyHeader aria-label="sticky table" sx={{ tableLayout: 'fixed' }}>
             <TableHead>
               <TableRow>
-                <TableCell /> {/* For expand button */}
-                <TableCell>ID</TableCell>
-                <TableCell>Antragsteller</TableCell>
-                <TableCell>Projekttitel</TableCell>
-                <TableCell>Abteilung/Fachschaft</TableCell>
-                <TableCell>Kosten</TableCell>
-                <TableCell>Status</TableCell>
+                <TableCell sx={{ width: '5%' }} /> {/* For expand button */}
+                <TableCell sx={{ width: '5%' }} sortDirection={orderBy === 'id' ? order : false}>
+                  <TableSortLabel
+                    active={orderBy === 'id'}
+                    direction={orderBy === 'id' ? order : 'asc'}
+                    onClick={() => handleRequestSort('id')}
+                  >
+                    ID
+                  </TableSortLabel>
+                </TableCell>
+                <TableCell sx={{ width: '20%' }}>Antragsteller</TableCell>
+                <TableCell sx={{ width: '30%' }} sortDirection={orderBy === 'project_title' ? order : false}>
+                  <TableSortLabel
+                    active={orderBy === 'project_title'}
+                    direction={orderBy === 'project_title' ? order : 'asc'}
+                    onClick={() => handleRequestSort('project_title')}
+                  >
+                    Projekttitel
+                  </TableSortLabel>
+                </TableCell>
+                <TableCell sx={{ width: '20%' }}>Abteilung/Fachschaft</TableCell>
+                <TableCell sx={{ width: '10%' }} sortDirection={orderBy === 'costs' ? order : false}>
+                  <TableSortLabel
+                    active={orderBy === 'costs'}
+                    direction={orderBy === 'costs' ? order : 'asc'}
+                    onClick={() => handleRequestSort('costs')}
+                  >
+                    Kosten
+                  </TableSortLabel>
+                </TableCell>
+                <TableCell sx={{ width: '10%' }} sortDirection={orderBy === 'status' ? order : false}>
+                  <TableSortLabel
+                    active={orderBy === 'status'}
+                    direction={orderBy === 'status' ? order : 'asc'}
+                    onClick={() => handleRequestSort('status')}
+                  >
+                    Status
+                  </TableSortLabel>
+                </TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
-              {applications.map((app) => (
-                <Row key={app.id} application={app} />
-              ))}
+              {sortedAndFilteredApplications.length > 0 ? (
+                sortedAndFilteredApplications.map((app) => (
+                  <Row key={app.id} application={app} />
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell colSpan={7} align="center">
+                    No applications found.
+                  </TableCell>
+                </TableRow>
+              )}
             </TableBody>
           </Table>
         </TableContainer>
-      )}
     </Paper>
   );
 };
