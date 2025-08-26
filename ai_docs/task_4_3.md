@@ -28,5 +28,5 @@ Automate the sending of final decision emails to both the applicant and all boar
     *   State the final outcome.
 
 ### Phase 4: Verification
-*   [ ] Use a local email testing tool to verify that both the applicant and all board members receive the correct notification.
-*   [ ] Test both "approved" and "rejected" scenarios to ensure the email content is accurate.
+*   [x] Use a local email testing tool to verify that both the applicant and all board members receive the correct notification.
+*   [x] Test both "approved" and "rejected" scenarios to ensure the email content is accurate.

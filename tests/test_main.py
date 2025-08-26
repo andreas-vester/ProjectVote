@@ -424,6 +424,121 @@ async def test_voting_conclusion(
     assert send_email_mock.call_count == EMAILS_SENT_FOR_FINAL_DECISION
 
 
+@pytest.mark.parametrize(
+    ("scenario", "votes", "expected_status"),
+    [
+        (
+            "Approved",
+            [
+                VoteOption.APPROVE,
+                VoteOption.APPROVE,
+                VoteOption.APPROVE,
+                VoteOption.REJECT,
+            ],
+            ApplicationStatus.APPROVED,
+        ),
+        (
+            "Rejected",
+            [
+                VoteOption.APPROVE,
+                VoteOption.REJECT,
+                VoteOption.REJECT,
+                VoteOption.REJECT,
+            ],
+            ApplicationStatus.REJECTED,
+        ),
+    ],
+)
+@pytest.mark.asyncio
+async def test_final_decision_email_content(
+    client: AsyncClient,
+    session: AsyncSession,
+    mocker: MockerFixture,
+    scenario: str,
+    votes: list[VoteOption],
+    expected_status: ApplicationStatus,
+) -> None:
+    """Test the content of the final decision emails."""
+    send_email_mock = mocker.patch(
+        "lvd_fv_form.backend.main.send_email", new_callable=mocker.AsyncMock
+    )
+    app_data = {
+        "first_name": "Email",
+        "last_name": "Test",
+        "applicant_email": "email.test@example.com",
+        "department": "Email Content",
+        "project_title": f"Test for {scenario} Email",
+        "project_description": "A test for email content.",
+        "costs": 200.00,
+    }
+    create_response = await client.post("/applications", json=app_data)
+    app_id = create_response.json()["application_id"]
+
+    send_email_mock.reset_mock()
+
+    result = await session.execute(
+        select(VoteRecord)
+        .where(VoteRecord.application_id == app_id)
+        .order_by(VoteRecord.voter_email)
+    )
+    vote_records = result.scalars().all()
+
+    for i, vote_decision in enumerate(votes):
+        await client.post(
+            f"/vote/{vote_records[i].token}", json={"decision": vote_decision.value}
+        )
+
+    assert send_email_mock.call_count == EMAILS_SENT_FOR_FINAL_DECISION
+
+    # Check applicant email
+    applicant_email_call = next(
+        call
+        for call in send_email_mock.call_args_list
+        if call.kwargs["recipients"] == [app_data["applicant_email"]]
+    )
+    assert (
+        applicant_email_call.kwargs["subject"]
+        == f"Entscheidung über Ihren Antrag: {app_data['project_title']}"
+    )
+    assert (
+        applicant_email_call.kwargs["template_name"] == "final_decision_applicant.html"
+    )
+    assert (
+        applicant_email_call.kwargs["template_body"]["first_name"]
+        == app_data["first_name"]
+    )
+    assert (
+        applicant_email_call.kwargs["template_body"]["last_name"]
+        == app_data["last_name"]
+    )
+    assert (
+        applicant_email_call.kwargs["template_body"]["project_title"]
+        == app_data["project_title"]
+    )
+    assert (
+        applicant_email_call.kwargs["template_body"]["status"]
+        == expected_status.value.upper()
+    )
+
+    # Check board member emails
+    board_member_email_calls = [
+        call
+        for call in send_email_mock.call_args_list
+        if call.kwargs["recipients"] != [app_data["applicant_email"]]
+    ]
+    assert len(board_member_email_calls) == len(TEST_BOARD_MEMBERS)
+    for call in board_member_email_calls:
+        assert (
+            call.kwargs["subject"]
+            == f"Abstimmung abgeschlossen für: {app_data['project_title']}"
+        )
+        assert call.kwargs["template_name"] == "final_decision_board.html"
+        assert (
+            call.kwargs["template_body"]["project_title"] == app_data["project_title"]
+        )
+        assert call.kwargs["template_body"]["status"] == expected_status.value.upper()
+
+
 @pytest.mark.asyncio
 async def test_get_applications_archive(client: AsyncClient) -> None:
     """Test that the /applications/archive GET endpoint returns all applications."""
