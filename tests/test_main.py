@@ -490,6 +490,13 @@ async def test_final_decision_email_content(
 
     assert send_email_mock.call_count == EMAILS_SENT_FOR_FINAL_DECISION
 
+    # Define the expected German translations
+    status_translations = {
+        ApplicationStatus.APPROVED.value: "Genehmigt",
+        ApplicationStatus.REJECTED.value: "Abgelehnt",
+    }
+    expected_german_status = status_translations.get(expected_status.value)
+
     # Check applicant email
     applicant_email_call = next(
         call
@@ -516,8 +523,7 @@ async def test_final_decision_email_content(
         == app_data["project_title"]
     )
     assert (
-        applicant_email_call.kwargs["template_body"]["status"]
-        == expected_status.value.upper()
+        applicant_email_call.kwargs["template_body"]["status"] == expected_german_status
     )
 
     # Check board member emails
@@ -536,7 +542,7 @@ async def test_final_decision_email_content(
         assert (
             call.kwargs["template_body"]["project_title"] == app_data["project_title"]
         )
-        assert call.kwargs["template_body"]["status"] == expected_status.value.upper()
+        assert call.kwargs["template_body"]["status"] == expected_german_status
 
 
 @pytest.mark.asyncio

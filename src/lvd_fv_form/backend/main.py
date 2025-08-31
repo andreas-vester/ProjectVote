@@ -169,6 +169,20 @@ async def send_final_decision_emails(
     application: Application, board_members: list[str], settings: Settings
 ) -> None:
     """Send final decision emails to the applicant and board members."""
+    status_translations = {
+        ApplicationStatus.APPROVED.value: "Genehmigt",
+        ApplicationStatus.REJECTED.value: "Abgelehnt",
+    }
+    # Get the raw status string from the application object
+    status_str = (
+        application.status.value
+        if isinstance(application.status, ApplicationStatus)
+        else str(application.status)
+    )
+
+    # Get the German translation, defaulting to the original status if not found
+    german_status = status_translations.get(status_str, status_str.upper())
+
     # Notification to Applicant
     await send_email(
         recipients=[application.applicant_email],  # type: ignore[arg-type]
@@ -177,7 +191,7 @@ async def send_final_decision_emails(
             "first_name": application.first_name,
             "last_name": application.last_name,
             "project_title": application.project_title,
-            "status": application.status.upper(),
+            "status": german_status,
         },
         template_name="final_decision_applicant.html",
         settings=settings,
@@ -190,7 +204,7 @@ async def send_final_decision_emails(
             subject=f"Abstimmung abgeschlossen für: {application.project_title}",
             template_body={
                 "project_title": application.project_title,
-                "status": application.status.upper(),
+                "status": german_status,
             },
             template_name="final_decision_board.html",
             settings=settings,

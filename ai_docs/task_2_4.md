@@ -12,19 +12,19 @@ Establish a robust and centralized layer in the frontend for interacting with th
 ## Tasks
 
 ### Phase 1: HTTP Client Setup
-*   [ ] Select an HTTP client library for the frontend (e.g., Axios).
-*   [ ] Configure the client with base URL for the backend API.
+*   [x] Select an HTTP client library for the frontend (e.g., Axios).
+*   [x] Configure the client with base URL for the backend API.
 
 ### Phase 2: Service Module Creation
-*   [ ] Create a dedicated module or file (e.g., `apiService.ts` or `backendApi.ts`) to house all API interaction logic.
-*   [ ] Define functions within this module for each backend API endpoint (e.g., `submitApplication`, `getVoteDetails`, `castVote`, `getApplicationsArchive`).
+*   [x] Create a dedicated module or file (e.g., `apiService.ts` or `backendApi.ts`) to house all API interaction logic.
+*   [x] Define functions within this module for each backend API endpoint (e.g., `submitApplication`, `getVoteDetails`, `castVote`, `getApplicationsArchive`).
 
 ### Phase 3: Request and Response Handling
-*   [ ] Within each service function, construct the appropriate HTTP request (method, URL, headers, body).
-*   [ ] Handle successful API responses, extracting and formatting data for consumption by UI components.
-*   [ ] Implement centralized error handling (e.g., using `try-catch` blocks, interceptors) to manage network errors, API errors (e.g., 4xx, 5xx status codes), and display user-friendly messages.
+*   [x] Within each service function, construct the appropriate HTTP request (method, URL, headers, body).
+*   [x] Handle successful API responses, extracting and formatting data for consumption by UI components.
+*   [x] Implement centralized error handling (e.g., using `try-catch` blocks, interceptors) to manage network errors, API errors (e.g., 4xx, 5xx status codes), and display user-friendly messages.
 *   [ ] Consider adding request/response interceptors for common tasks like authentication headers or logging.
 
 ### Phase 4: Integration with UI Components
-*   [ ] Ensure that UI components interact with the backend solely through these service functions, promoting separation of concerns.
-*   [ ] Verify that data passed to and from UI components is consistent with the API service layer's expectations.
+*   [x] Ensure that UI components interact with the backend solely through these service functions, promoting separation of concerns.
+*   [x] Verify that data passed to and from UI components is consistent with the API service layer's expectations.

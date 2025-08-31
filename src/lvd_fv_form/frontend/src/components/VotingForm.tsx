@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import axios from 'axios';
 import {
   Container,
   Typography,
@@ -16,32 +15,26 @@ import {
   Radio,
   Snackbar,
 } from '@mui/material';
-
-// Simplified application interface for the voting form
-interface Application {
-  id: number;
-  project_title: string;
-  project_description: string;
-  costs: number;
-  department: string;
-}
-
-type VoteOption = 'approve' | 'reject' | 'abstain';
+import {
+  getVoteDetails,
+  castVote,
+  type VoteDetails,
+  type VoteCreate,
+  VoteOption,
+} from '../apiService';
 
 const voteOptionLabels: Record<VoteOption, string> = {
-  approve: 'Zustimmen',
-  reject: 'Ablehnen',
-  abstain: 'Enthalten',
+  [VoteOption.APPROVE]: 'Zustimmen',
+  [VoteOption.REJECT]: 'Ablehnen',
+  [VoteOption.ABSTAIN]: 'Enthalten',
 };
 
 const VotingForm: React.FC = () => {
   const { token } = useParams<{ token: string }>();
-  const [application, setApplication] = useState<Application | null>(null);
-  const [voterEmail, setVoterEmail] = useState<string>('');
-  const [voteOptions, setVoteOptions] = useState<VoteOption[]>([]);
+  const [voteDetails, setVoteDetails] = useState<VoteDetails | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
-  const [selectedVote, setSelectedVote] = useState<VoteOption>('approve');
+  const [selectedVote, setSelectedVote] = useState<VoteOption>(VoteOption.APPROVE);
   const [snackbar, setSnackbar] = useState<{
     open: boolean;
     message: string;
@@ -56,12 +49,14 @@ const VotingForm: React.FC = () => {
         return;
       }
       try {
-        const response = await axios.get(`http://localhost:8001/vote/${token}`);
-        setApplication(response.data.application);
-        setVoterEmail(response.data.voter_email);
-        setVoteOptions(response.data.vote_options);
+        const data = await getVoteDetails(token);
+        setVoteDetails(data);
+        if (data.vote_options.length > 0) {
+          setSelectedVote(data.vote_options[0]);
+        }
       } catch (err: any) {
-        const errorMessage = err.response?.data?.detail || 'Fehler beim Abrufen der Abstimmungsdaten.';
+        const errorMessage =
+          err.response?.data?.detail || 'Fehler beim Abrufen der Abstimmungsdaten.';
         setError(errorMessage);
         console.error(err);
       } finally {
@@ -84,29 +79,35 @@ const VotingForm: React.FC = () => {
     e.preventDefault();
     setSnackbar(null);
 
+    if (!token) {
+      setError('Kein Abstimmungs-Token gefunden.');
+      return;
+    }
+
     try {
-      const response = await axios.post(`http://localhost:8001/vote/${token}`, {
-        decision: selectedVote,
-      });
+      const voteData: VoteCreate = { decision: selectedVote };
+      const response = await castVote(token, voteData);
       setSnackbar({
         open: true,
-        message: response.data.message || 'Stimme erfolgreich abgegeben!',
+        message: response.message || 'Stimme erfolgreich abgegeben!',
         severity: 'success',
       });
     } catch (err: any) {
-        const errorMessage = err.response?.data?.detail || 'Unbekannter Fehler.';
-        setSnackbar({
-          open: true,
-          message: `Fehler beim Abstimmen: ${errorMessage}`,
-          severity: 'error',
-        });
-        console.error(err);
+      const errorMessage = err.response?.data?.detail || 'Unbekannter Fehler.';
+      setSnackbar({
+        open: true,
+        message: `Fehler beim Abstimmen: ${errorMessage}`,
+        severity: 'error',
+      });
+      console.error(err);
     }
   };
 
   if (loading) return <CircularProgress />;
   if (error) return <Alert severity="error">{error}</Alert>;
-  if (!application) return <Alert severity="info">Antragsdaten konnten nicht geladen werden.</Alert>;
+  if (!voteDetails) return <Alert severity="info">Antragsdaten konnten nicht geladen werden.</Alert>;
+
+  const { application, voter_email, vote_options } = voteDetails;
 
   return (
     <Container maxWidth="md">
@@ -116,40 +117,45 @@ const VotingForm: React.FC = () => {
         </Typography>
 
         <Box sx={{ mb: 3, p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 1 }}>
-            <Typography variant="h6">Antragsdetails</Typography>
-            <Typography><b>Abteilung/Fachschaft:</b> {application.department}</Typography>
-            <Typography><b>Kosten:</b> €{application.costs.toFixed(2)}</Typography>
-            <Typography><b>Beschreibung:</b> {application.project_description}</Typography>
+          <Typography variant="h6">Antragsdetails</Typography>
+          <Typography><b>Abteilung/Fachschaft:</b> {application.department}</Typography>
+          <Typography><b>Kosten:</b> €{application.costs.toFixed(2)}</Typography>
+          <Typography><b>Beschreibung:</b> {application.project_description}</Typography>
         </Box>
 
         <Typography variant="h5" component="h2" gutterBottom>
-          Stimme abgeben als {voterEmail}
+          Stimme abgeben als {voter_email}
         </Typography>
         <Box component="form" onSubmit={handleSubmit} noValidate sx={{ mt: 1 }}>
-            <FormControl component="fieldset" required>
-                <FormLabel component="legend">Ihre Entscheidung</FormLabel>
-                <RadioGroup
-                    aria-label="decision"
-                    name="decision"
-                    value={selectedVote}
-                    onChange={handleVoteChange}
-                    row
-                >
-                  {voteOptions.map(option => (
-                    <FormControlLabel key={option} value={option} control={<Radio />} label={voteOptionLabels[option]} />
-                  ))}
-                </RadioGroup>
-            </FormControl>
-
-            <Button
-                type="submit"
-                fullWidth
-                variant="contained"
-                sx={{ mt: 3, mb: 2 }}
-                disabled={!!snackbar && snackbar.severity === 'success'}
+          <FormControl component="fieldset" required>
+            <FormLabel component="legend">Ihre Entscheidung</FormLabel>
+            <RadioGroup
+              aria-label="decision"
+              name="decision"
+              value={selectedVote}
+              onChange={handleVoteChange}
+              row
             >
-                Stimme abgeben
-            </Button>
+              {vote_options.map((option) => (
+                <FormControlLabel
+                  key={option}
+                  value={option}
+                  control={<Radio />}
+                  label={voteOptionLabels[option]}
+                />
+              ))}
+            </RadioGroup>
+          </FormControl>
+
+          <Button
+            type="submit"
+            fullWidth
+            variant="contained"
+            sx={{ mt: 3, mb: 2 }}
+            disabled={!!snackbar && snackbar.severity === 'success'}
+          >
+            Stimme abgeben
+          </Button>
         </Box>
       </Paper>
       {snackbar && (

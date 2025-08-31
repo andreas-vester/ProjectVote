@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from 'react';
-import axios from 'axios';
 import {
   Table,
   TableBody,
@@ -19,26 +18,9 @@ import {
 } from '@mui/material';
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
+import { getApplicationsArchive, type ApplicationOut } from '../apiService';
 
-interface Vote {
-  voter_email: string;
-  decision: 'approve' | 'reject' | 'abstain' | null;
-}
-
-interface Application {
-  id: number;
-  first_name: string;
-  last_name: string;
-  applicant_email: string;
-  department: string;
-  project_title: string;
-  project_description: string;
-  costs: number;
-  status: 'pending' | 'approved' | 'rejected';
-  votes: Vote[]; // Add votes array
-}
-
-const Row: React.FC<{ application: Application }> = ({ application }) => {
+const Row: React.FC<{ application: ApplicationOut }> = ({ application }) => {
   const [open, setOpen] = useState(false);
 
   return (
@@ -94,18 +76,18 @@ const Row: React.FC<{ application: Application }> = ({ application }) => {
 };
 
 const Archive: React.FC = () => {
-  const [applications, setApplications] = useState<Application[]>([]);
+  const [applications, setApplications] = useState<ApplicationOut[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [filterText, setFilterText] = useState('');
-  const [orderBy, setOrderBy] = useState<keyof Application>('id');
+  const [orderBy, setOrderBy] = useState<keyof ApplicationOut>('id');
   const [order, setOrder] = useState<'asc' | 'desc'>('desc');
 
   useEffect(() => {
     const fetchApplications = async () => {
       try {
-        const response = await axios.get<Application[]>('http://localhost:8001/applications/archive');
-        setApplications(response.data);
+        const data = await getApplicationsArchive();
+        setApplications(data);
       } catch (err) {
         setError('Fehler beim Abrufen der Anträge.');
         console.error(err);
@@ -117,7 +99,7 @@ const Archive: React.FC = () => {
     fetchApplications();
   }, []);
 
-  const handleRequestSort = (property: keyof Application) => {
+  const handleRequestSort = (property: keyof ApplicationOut) => {
     const isAsc = orderBy === property && order === 'asc';
     setOrder(isAsc ? 'desc' : 'asc');
     setOrderBy(property);

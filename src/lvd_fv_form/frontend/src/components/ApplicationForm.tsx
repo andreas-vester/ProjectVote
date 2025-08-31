@@ -1,5 +1,4 @@
-import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import React, { useState } from 'react';
 import {
   Container,
   Typography,
@@ -12,6 +11,7 @@ import {
   CircularProgress,
 } from '@mui/material';
 import Grid from '@mui/material/Grid';
+import { submitApplication, type ApplicationCreate } from '../apiService';
 
 const ApplicationForm: React.FC = () => {
   const [formData, setFormData] = useState({
@@ -82,16 +82,19 @@ const ApplicationForm: React.FC = () => {
     }
 
     try {
-      const response = await axios.post('http://localhost:8001/applications', {
+      const applicationData: ApplicationCreate = {
         ...formData,
         costs: parseFloat(formData.costs) || 0,
-      });
+      };
+
+      const response = await submitApplication(applicationData);
+
       setSnackbar({
         open: true,
         message: 'Antrag erfolgreich eingereicht!',
         severity: 'success',
       });
-      console.log(response.data);
+      console.log(response);
       // Clear the form
       setFormData({
         first_name: '',
