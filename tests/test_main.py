@@ -492,8 +492,8 @@ async def test_final_decision_email_content(
 
     # Define the expected German translations
     status_translations = {
-        ApplicationStatus.APPROVED.value: "Genehmigt",
-        ApplicationStatus.REJECTED.value: "Abgelehnt",
+        ApplicationStatus.APPROVED.value: "genehmigt",
+        ApplicationStatus.REJECTED.value: "abgelehnt",
     }
     expected_german_status = status_translations.get(expected_status.value)
 
