@@ -149,7 +149,7 @@ async def send_voting_links(
         await db.flush()
         await db.refresh(vote_record)
 
-        vote_url = f"http://localhost:5173/vote/{vote_record.token}"
+        vote_url = f"{settings.frontend_url}/vote/{vote_record.token}"
         await send_email(
             recipients=[member_email],
             subject=f"Neuer Förderantrag: {application.project_title}",
@@ -170,8 +170,8 @@ async def send_final_decision_emails(
 ) -> None:
     """Send final decision emails to the applicant and board members."""
     status_translations = {
-        ApplicationStatus.APPROVED.value: "Genehmigt",
-        ApplicationStatus.REJECTED.value: "Abgelehnt",
+        ApplicationStatus.APPROVED.value: "genehmigt",
+        ApplicationStatus.REJECTED.value: "abgelehnt",
     }
     # Get the raw status string from the application object
     status_str = (

@@ -31,6 +31,9 @@ class Settings(BaseSettings):
     mail_from_name: str = "LVD-FV Funding Portal"
     mail_driver: str = "smtp"
 
+    # Application settings
+    frontend_url: str = "http://localhost:5173"
+
     # Database settings
     db_echo: bool = True
 

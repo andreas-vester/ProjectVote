@@ -12,3 +12,6 @@ Establish a system for managing environment-specific variables securely and effi
 *   [x] The `.env.local` file is included in `.gitignore`.
 *   [x] An `APP_ENV` environment variable is used to switch between `development`, `testing`, and `production` environments.
 *   [x] The application is configured to load the correct `.env` file based on `APP_ENV`.
+*   [x] A `FRONTEND_URL` variable is added to the `.env` files to control the base URL for links sent in emails.
+*   [x] The backend is updated to use the `FRONTEND_URL` variable when generating voting links.
+*   [x] The frontend is configured to use a `VITE_API_BASE_URL` environment variable for the backend API's base URL.
