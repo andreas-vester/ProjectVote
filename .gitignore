@@ -34,7 +34,6 @@ yarn-error.log
 
 # ...but re-include the example file(s)
 !.env.example
-!.env.local
 
 # Coverage reports
 .coverage
