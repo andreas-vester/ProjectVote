@@ -28,8 +28,13 @@ yarn-error.log
 /data
 
 # Environment variables
+# Ignore all .env files...
 .env
-.env.local
+.env.*
+
+# ...but re-include the example file(s)
+!.env.example
+!.env.local
 
 # Coverage reports
 .coverage
