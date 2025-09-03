@@ -1,6 +1,6 @@
-# Master Plan: Funding Application Management System Development
+# Master Plan: ProjectVote Development
 
-This document outlines the high-level development phases for the Funding Application Management System. Each section represents a major area of work that will be broken down into more detailed tasks in separate markdown documents.
+This document outlines the high-level development phases for ProjectVote. Each section represents a major area of work that will be broken down into more detailed tasks in separate markdown documents.
 
 ## 1. Core Backend Development
 ### 1.1 Database Schema Definition
@@ -21,6 +21,8 @@ This document outlines the high-level development phases for the Funding Applica
 ### 3.2 Central Configuration Module
 ### 3.3 Board Member Configuration
 ### 3.4 Personalized Board Member Emails
+
+### 3.5 Organization Name Configuration
 
 ## 4. Email Integration
 ### 4.1 Email Service Configuration

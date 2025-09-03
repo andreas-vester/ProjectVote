@@ -1,4 +1,4 @@
-"""FastAPI application for the LVD-FV form submission and voting system."""
+"""FastAPI application for ProjectVote."""
 
 import os
 from collections.abc import AsyncGenerator

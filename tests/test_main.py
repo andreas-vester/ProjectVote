@@ -1,4 +1,4 @@
-"""Tests for the LVD-FV form submission and voting system."""
+"""Tests for the ProjectVote application."""
 
 from collections.abc import AsyncGenerator
 from http import HTTPStatus

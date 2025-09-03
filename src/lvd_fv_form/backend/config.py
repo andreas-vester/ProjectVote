@@ -28,7 +28,7 @@ class Settings(BaseSettings):
     mail_server: str = "localhost"
     mail_starttls: bool = False
     mail_ssl_tls: bool = False
-    mail_from_name: str = "LVD-FV Funding Portal"
+    mail_from_name: str = "ProjectVote"
     mail_driver: str = "smtp"
 
     # Application settings

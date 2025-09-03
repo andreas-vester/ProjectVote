@@ -1,10 +1,10 @@
-# Project Requirements: Funding Application Management System
+# Project Requirements: ProjectVote
 
-This document outlines the core functional requirements for the web application designed to manage funding applications for a school's support association (Förderverein).
+This document outlines the core functional requirements for the web application designed to manage funding applications for associations.
 
 ## 1. Application Submission
 
-*   **Purpose:** Allow individuals (e.g., teachers) to submit new funding requests.
+*   **Purpose:** Allow individuals to submit new funding requests.
 *   **Features:**
     *   A user-friendly form for entering project details (title, description, costs, department).
     *   Collection of applicant's contact information (name, email).
