@@ -34,9 +34,8 @@ This document outlines the high-level development phases for ProjectVote. Each s
 ### 5.2 Comprehensive End-to-End Tests
 
 ## 6. Deployment & Infrastructure
-### 6.1 Backend Deployment Strategy
-### 6.2 Frontend Deployment Strategy
-### 6.3 Database Setup & Management
+### 6.1 Unified Docker-based Deployment
+### 6.2 Database Setup & Management
 
 ## 7. Enhancements & Future Features
 ### 7.1 User Authentication & Authorization

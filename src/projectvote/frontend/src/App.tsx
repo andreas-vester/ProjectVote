@@ -1,4 +1,3 @@
-import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Link as RouterLink } from 'react-router-dom';
 import { Container, Typography, CssBaseline, AppBar, Toolbar, Button } from '@mui/material';
 import ApplicationForm from './components/ApplicationForm';

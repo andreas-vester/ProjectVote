@@ -40,4 +40,4 @@ USER appuser
 EXPOSE 8008
 
 # Command to run the application
-CMD ["uvicorn", "lvd_fv_form.backend.main:app", "--host", "0.0.0.0", "--port", "8008"]
+CMD ["uvicorn", "projectvote.backend.main:app", "--host", "0.0.0.0", "--port", "8008"]

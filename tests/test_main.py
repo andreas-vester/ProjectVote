@@ -11,10 +11,10 @@ from pytest_mock import MockerFixture
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
-from lvd_fv_form.backend.config import Settings
-from lvd_fv_form.backend.database import DATABASE_URL, get_db
-from lvd_fv_form.backend.main import app, get_board_members
-from lvd_fv_form.backend.models import (
+from projectvote.backend.config import Settings
+from projectvote.backend.database import DATABASE_URL, get_db
+from projectvote.backend.main import app, get_board_members
+from projectvote.backend.models import (
     Application,
     ApplicationStatus,
     Base,
@@ -78,7 +78,7 @@ async def client_fixture(
         return TEST_BOARD_MEMBERS
 
     # Mock the send_email function to prevent real emails from being sent
-    mocker.patch("lvd_fv_form.backend.main.send_email", new_callable=mocker.AsyncMock)
+    mocker.patch("projectvote.backend.main.send_email", new_callable=mocker.AsyncMock)
 
     app.dependency_overrides[get_db] = get_test_db
     app.dependency_overrides[get_board_members] = get_test_board_members
@@ -104,7 +104,7 @@ async def test_create_application(
 ) -> None:
     """Test creating a new application and associated vote records."""
     send_email_mock = mocker.patch(
-        "lvd_fv_form.backend.main.send_email", new_callable=mocker.AsyncMock
+        "projectvote.backend.main.send_email", new_callable=mocker.AsyncMock
     )
     application_data = {
         "first_name": "Test",
@@ -380,7 +380,7 @@ async def test_voting_conclusion(
 ) -> None:
     """Test voting conclusion with different vote combinations."""
     send_email_mock = mocker.patch(
-        "lvd_fv_form.backend.main.send_email", new_callable=mocker.AsyncMock
+        "projectvote.backend.main.send_email", new_callable=mocker.AsyncMock
     )
     # Create an application and vote records via the API
     app_data = {
@@ -460,7 +460,7 @@ async def test_final_decision_email_content(
 ) -> None:
     """Test the content of the final decision emails."""
     send_email_mock = mocker.patch(
-        "lvd_fv_form.backend.main.send_email", new_callable=mocker.AsyncMock
+        "projectvote.backend.main.send_email", new_callable=mocker.AsyncMock
     )
     app_data = {
         "first_name": "Email",
@@ -590,7 +590,7 @@ def test_get_board_members_from_config(mocker: MockerFixture) -> None:
 
     # Patch the get_app_settings dependency to return our mock settings
     mocker.patch(
-        "lvd_fv_form.backend.main.get_app_settings",
+        "projectvote.backend.main.get_app_settings",
         return_value=mock_settings_instance,
     )
 

@@ -2,8 +2,8 @@
 
 import pytest
 
-from lvd_fv_form.backend.config import Settings
-from lvd_fv_form.backend.main import get_app_settings
+from projectvote.backend.config import Settings
+from projectvote.backend.main import get_app_settings
 
 
 def test_settings_load_from_env(monkeypatch: pytest.MonkeyPatch) -> None:

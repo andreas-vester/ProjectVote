@@ -14,14 +14,14 @@ Make the organization's name configurable via an environment variable and integr
 
 ### Phase 1: Environment Variable and Configuration
 *   [ ] Add `ORGANIZATION_NAME` to `.env.example` with a default value (e.g., "Your Organization Name").
-*   [ ] Add `organization_name: str` to the `Settings` class in `src/lvd_fv_form/backend/config.py`, loading it from the environment.
+*   [ ] Add `organization_name: str` to the `Settings` class in `src/projectvote/backend/config.py`, loading it from the environment.
 
 ### Phase 2: Integration into Templates and Frontend
-*   [ ] Modify `src/lvd_fv_form/backend/templates/email/final_decision_applicant.html` to use `{{ organization_name }}` instead of hardcoded "ProjectVote".
-*   [ ] Modify `src/lvd_fv_form/backend/templates/email/final_decision_board.html` to use `{{ organization_name }}`.
-*   [ ] Modify `src/lvd_fv_form/backend/templates/email/new_application.html` to use `{{ organization_name }}`.
+*   [ ] Modify `src/projectvote/backend/templates/email/final_decision_applicant.html` to use `{{ organization_name }}` instead of hardcoded "ProjectVote".
+*   [ ] Modify `src/projectvote/backend/templates/email/final_decision_board.html` to use `{{ organization_name }}`.
+*   [ ] Modify `src/projectvote/backend/templates/email/new_application.html` to use `{{ organization_name }}`.
 *   [ ] Update the backend logic (e.g., in `main.py` where emails are sent) to pass `organization_name` to the email templates.
-*   [ ] Update `src/lvd_fv_form/frontend/src/App.tsx` to fetch and display the `ORGANIZATION_NAME` from the backend or directly from a frontend environment variable if preferred for display purposes.
+*   [ ] Update `src/projectvote/frontend/src/App.tsx` to fetch and display the `ORGANIZATION_NAME` from the backend or directly from a frontend environment variable if preferred for display purposes.
 
 ### Phase 3: Verification
 *   [ ] Run tests to ensure the new configuration is loaded correctly.

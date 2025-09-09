@@ -53,7 +53,7 @@ def get_mailer(settings: Settings) -> FastMail:
         MAIL_FROM_NAME=settings.mail_from_name,
         USE_CREDENTIALS=not is_mailhog,
         VALIDATE_CERTS=not is_mailhog,
-        TEMPLATE_FOLDER=Path("./src/lvd_fv_form/backend/templates/email"),
+        TEMPLATE_FOLDER=Path("./src/projectvote/backend/templates/email"),
     )
     return FastMail(conf)
 

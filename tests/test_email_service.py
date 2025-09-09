@@ -3,15 +3,15 @@
 import pytest
 from pytest_mock import MockerFixture
 
-from lvd_fv_form.backend.config import Settings
-from lvd_fv_form.backend.email_service import send_email
+from projectvote.backend.config import Settings
+from projectvote.backend.email_service import send_email
 
 
 @pytest.mark.asyncio
 async def test_send_email(mocker: MockerFixture) -> None:
     """Test that send_email calls the mailer with the correct parameters."""
     # Arrange
-    mock_mailer = mocker.patch("lvd_fv_form.backend.email_service.get_mailer")
+    mock_mailer = mocker.patch("projectvote.backend.email_service.get_mailer")
     mock_send = mocker.AsyncMock()
     mock_mailer.return_value.send_message = mock_send
 

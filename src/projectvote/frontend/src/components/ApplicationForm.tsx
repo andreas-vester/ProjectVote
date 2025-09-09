@@ -9,8 +9,8 @@ import {
   Snackbar,
   Alert,
   CircularProgress,
+  Grid,
 } from '@mui/material';
-import Grid from '@mui/material/Grid';
 import { submitApplication, type ApplicationCreate } from '../apiService';
 
 const ApplicationForm: React.FC = () => {
@@ -125,7 +125,7 @@ const ApplicationForm: React.FC = () => {
         </Typography>
         <Box component="form" onSubmit={handleSubmit} noValidate sx={{ mt: 1 }}>
           <Grid container spacing={2}>
-            <Grid xs={12} sm={6}>
+            <Grid>
               <TextField
                 name="first_name"
                 required
@@ -139,7 +139,7 @@ const ApplicationForm: React.FC = () => {
                 helperText={errors.first_name}
               />
             </Grid>
-            <Grid xs={12} sm={6}>
+            <Grid>
               <TextField
                 required
                 fullWidth
@@ -152,7 +152,7 @@ const ApplicationForm: React.FC = () => {
                 helperText={errors.last_name}
               />
             </Grid>
-            <Grid xs={12}>
+            <Grid>
               <TextField
                 required
                 fullWidth
@@ -166,7 +166,7 @@ const ApplicationForm: React.FC = () => {
                 helperText={errors.applicant_email}
               />
             </Grid>
-            <Grid xs={12}>
+            <Grid>
               <TextField
                 required
                 fullWidth
@@ -179,7 +179,7 @@ const ApplicationForm: React.FC = () => {
                 helperText={errors.department}
               />
             </Grid>
-            <Grid xs={12}>
+            <Grid>
               <TextField
                 required
                 fullWidth
@@ -192,7 +192,7 @@ const ApplicationForm: React.FC = () => {
                 helperText={errors.project_title}
               />
             </Grid>
-            <Grid xs={12}>
+            <Grid>
               <TextField
                 required
                 fullWidth
@@ -207,7 +207,7 @@ const ApplicationForm: React.FC = () => {
                 helperText={errors.project_description}
               />
             </Grid>
-            <Grid xs={12}>
+            <Grid>
               <TextField
                 required
                 fullWidth

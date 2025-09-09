@@ -37,7 +37,7 @@ class Settings(BaseSettings):
     # Database settings
     db_echo: bool = True
 
-    # This assumes that config.py is in src/lvd_fv_form/backend
+    # This assumes that config.py is in src/projectvote/backend
     # So the project root is 4 levels up.
     project_root: Path = Path(__file__).resolve().parent.parent.parent.parent
 

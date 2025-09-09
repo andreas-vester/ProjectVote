@@ -1,39 +1,29 @@
-# Task 6.1: Backend Deployment Strategy
+# Task 6.1: Unified Docker-based Deployment
 
 ## Goal
-Define and implement a strategy for deploying the backend API to a production environment, ensuring scalability, reliability, and security.
+Define and implement a unified, container-based deployment strategy for the entire application (backend and frontend) using Docker and Docker Compose.
 
 ## Plan
-1.  Choose a deployment platform.
-2.  Containerize the backend application.
-3.  Configure environment variables and secrets management.
-4.  Set up continuous integration/continuous deployment (CI/CD) pipeline.
+1.  Containerize the frontend application.
+2.  Create a `docker-compose.yml` to orchestrate all services.
+3.  Configure inter-service communication and environment variables.
+4.  Establish a local development environment with MailHog.
+5.  Document the deployment process.
 
 ## Tasks
 
-### Phase 1: Container Registry and Deployment Target Selection
-*   [ ] Evaluate potential container registries (e.g., Docker Hub, GitHub Container Registry, GitLab Container Registry) and deployment targets (e.g., Kubernetes, Docker Swarm, cloud-managed container services, private VPS with Docker).
-*   [ ] Consider factors like cost, scalability, ease of management, and existing infrastructure.
+### Phase 1: Frontend Containerization
+*   [x] Create a multi-stage `Dockerfile` for the frontend that builds the React app and serves it with Nginx.
 
-#### Evaluation Summary
-**Decision & Rationale:**
+### Phase 2: Docker Compose Setup
+*   [x] Create a `docker-compose.yml` file at the project root.
+*   [x] Define a `backend` service using the existing `Dockerfile`.
+*   [x] Define a `frontend` service using the new frontend `Dockerfile`.
+*   [x] Add a `mailhog` service for local email testing.
 
-*   **Decision:** The project will use a **platform-agnostic, container-based (Docker) deployment strategy**. This ensures the application is portable and can be deployed consistently across different environments.
-*   **Initial Target (Development/Testing):** The user's existing **Hetzner VPS** will be used for initial deployment and testing. This is ideal for GDPR as Hetzner is a German provider and avoids the complexity of signing Data Processing Addendums (DPAs) with US-based cloud providers.
-*   **Long-Term Target (Production):** The **organization's own server** is the preferred long-term solution to ensure project continuity. The containerized approach will facilitate this future migration.
+### Phase 3: Configuration
+*   [x] Update environment variables (`.env.example`) for Docker networking (e.g., `VITE_API_BASE_URL`, `FRONTEND_URL`).
+*   [x] Ensure services can communicate with each other using service names.
 
-### Phase 2: Containerization
-*   [x] Create a `Dockerfile` for the FastAPI application.
-*   [x] Ensure the Docker image includes all necessary dependencies and configurations.
-*   [x] Build and test the Docker image locally.
-
-### Phase 3: Configuration and Secrets Management
-*   [x] Identify all environment-specific configurations (e.g., database connection strings, API keys).
-*   [x] Implement a secure method for managing secrets in the production environment (e.g., environment variables, secret management services).
-
-### Phase 4: CI/CD Pipeline Setup
-*   [ ] Set up a CI/CD pipeline (e.g., GitHub Actions, GitLab CI, Jenkins) to automate:
-    *   Building the Docker image on code push.
-    *   Pushing the image to a container registry.
-    *   Deploying the new image to the chosen platform.
-*   [ ] Configure health checks and monitoring for the deployed backend.
+### Phase 4: Documentation
+*   [x] Add instructions to `README.md` on how to run the application using `docker-compose`.
