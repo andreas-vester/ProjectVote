@@ -18,7 +18,19 @@ import {
 } from '@mui/material';
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
-import { getApplicationsArchive, type ApplicationOut } from '../apiService';
+import { getApplicationsArchive, type ApplicationOut, ApplicationStatus, VoteOption } from '../apiService';
+
+const applicationStatusTranslations: Record<ApplicationStatus, string> = {
+  [ApplicationStatus.PENDING]: 'Ausstehend',
+  [ApplicationStatus.APPROVED]: 'Genehmigt',
+  [ApplicationStatus.REJECTED]: 'Abgelehnt',
+};
+
+const voteOptionTranslations: Record<VoteOption, string> = {
+  [VoteOption.APPROVE]: 'Zustimmung',
+  [VoteOption.REJECT]: 'Ablehnung',
+  [VoteOption.ABSTAIN]: 'Enthaltung',
+};
 
 const Row: React.FC<{ application: ApplicationOut }> = ({ application }) => {
   const [open, setOpen] = useState(false);
@@ -42,7 +54,7 @@ const Row: React.FC<{ application: ApplicationOut }> = ({ application }) => {
         <TableCell>{application.project_title}</TableCell>
         <TableCell>{application.department}</TableCell>
         <TableCell>{`€${application.costs.toFixed(2)}`}</TableCell>
-        <TableCell>{application.status}</TableCell>
+        <TableCell>{applicationStatusTranslations[application.status] || application.status}</TableCell>
       </TableRow>
       <TableRow>
         <TableCell style={{ paddingBottom: 0, paddingTop: 0 }} colSpan={7}>
@@ -62,7 +74,7 @@ const Row: React.FC<{ application: ApplicationOut }> = ({ application }) => {
                   {application.votes.map((vote, index) => (
                     <TableRow key={index}>
                       <TableCell>{vote.voter_email}</TableCell>
-                      <TableCell>{vote.decision || 'N/A'}</TableCell>
+                      <TableCell>{vote.decision ? voteOptionTranslations[vote.decision] : 'N/A'}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
