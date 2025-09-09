@@ -21,7 +21,6 @@ This document outlines the high-level development phases for ProjectVote. Each s
 ### 3.2 Central Configuration Module
 ### 3.3 Board Member Configuration
 ### 3.4 Personalized Board Member Emails
-
 ### 3.5 Organization Name Configuration
 
 ## 4. Email Integration
@@ -36,6 +35,7 @@ This document outlines the high-level development phases for ProjectVote. Each s
 ## 6. Deployment & Infrastructure
 ### 6.1 Unified Docker-based Deployment
 ### 6.2 Database Setup & Management
+### 6.3 Continuous Integration (GitHub Actions)
 
 ## 7. Enhancements & Future Features
 ### 7.1 User Authentication & Authorization
