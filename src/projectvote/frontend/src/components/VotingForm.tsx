@@ -15,6 +15,7 @@ import {
   Radio,
   Snackbar,
 } from '@mui/material';
+import axios from 'axios';
 import {
   getVoteDetails,
   castVote,
@@ -54,9 +55,11 @@ const VotingForm: React.FC = () => {
         if (data.vote_options.length > 0) {
           setSelectedVote(data.vote_options[0]);
         }
-      } catch (err: any) {
-        const errorMessage =
-          err.response?.data?.detail || 'Fehler beim Abrufen der Abstimmungsdaten.';
+      } catch (err) {
+        let errorMessage = 'Fehler beim Abrufen der Abstimmungsdaten.';
+        if (axios.isAxiosError(err) && err.response) {
+          errorMessage = err.response.data?.detail || errorMessage;
+        }
         setError(errorMessage);
         console.error(err);
       } finally {
@@ -92,8 +95,11 @@ const VotingForm: React.FC = () => {
         message: response.message || 'Stimme erfolgreich abgegeben!',
         severity: 'success',
       });
-    } catch (err: any) {
-      const errorMessage = err.response?.data?.detail || 'Unbekannter Fehler.';
+    } catch (err) {
+      let errorMessage = 'Unbekannter Fehler.';
+      if (axios.isAxiosError(err) && err.response) {
+        errorMessage = err.response.data?.detail || errorMessage;
+      }
       setSnackbar({
         open: true,
         message: `Fehler beim Abstimmen: ${errorMessage}`,
