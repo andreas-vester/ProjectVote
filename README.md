@@ -39,3 +39,17 @@ ProjectVote is a funding application management system designed to streamline th
 
 
 The application should now be running. The first time you run the application, Docker Compose will build the images, which may take a few minutes.
+
+## Database
+
+The application uses a SQLite database to store application data.
+
+### Location and Persistence
+
+The database is stored in the `data` directory at the root of the project. This is achieved using a bind mount in `docker-compose.yml`, which maps the `./data` directory on your host machine to the `/app/data` directory inside the `backend` container.
+
+This ensures the database file (`applications.db`) is directly accessible on your filesystem and persists across container restarts.
+
+### Accessing the Database
+
+Since the database file is on your host machine at `data/applications.db`, you can open it using any standard SQLite database tool. There is no need to connect to the running container.

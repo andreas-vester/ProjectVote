@@ -15,7 +15,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from .config import Settings
-from .database import engine, get_db
+from .database import DATABASE_URL, engine, get_db
 from .email_service import send_email
 from .models import (
     Application,
@@ -30,6 +30,12 @@ from .models import (
 @asynccontextmanager
 async def lifespan(_: FastAPI) -> AsyncGenerator[None, None]:
     """Handle application startup and shutdown events."""
+    # Ensure the data directory exists before creating tables.
+    # This is placed here to run once on application startup.
+    db_path_str = DATABASE_URL.split("///", 1)[1]
+    db_dir = Path(db_path_str).parent
+    db_dir.mkdir(parents=True, exist_ok=True)
+
     # Database table creation
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
