@@ -6,7 +6,7 @@ This document outlines the high-level development phases for ProjectVote. Each s
 ### 1.1 Database Schema Definition
 ### 1.2 Application Submission API
 ### 1.3 Voting Process API
-
+### 1.4 File Upload Handling
 ### 1.5 Board Member Management (Dependency Injection)
 
 ## 2. Core Frontend Development
@@ -15,6 +15,7 @@ This document outlines the high-level development phases for ProjectVote. Each s
 ### 2.3 Application Archive View
 ### 2.4 API Integration Layer
 ### 2.5 Frontend Routing
+### 2.6 File Upload in Submission Form
 
 ## 3. Application Configuration
 ### 3.1 Environment Variable Setup
