@@ -36,7 +36,7 @@ def test_settings_missing_required_raises_error(
 
     # Act & Assert
     with pytest.raises(
-        ValueError, match="BOARD_MEMBERS environment variable is not set."
+        ValueError, match=r"BOARD_MEMBERS environment variable is not set\."
     ):
         get_app_settings()
 

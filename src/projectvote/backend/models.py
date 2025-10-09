@@ -59,6 +59,7 @@ class Application(Base):
     )
 
     votes = relationship("VoteRecord", back_populates="application")
+    attachments = relationship("Attachment", back_populates="application")
 
 
 def generate_uuid() -> str:
@@ -81,3 +82,17 @@ class VoteRecord(Base):
     vote_status = Column(PyEnum(VoteStatus), default=VoteStatus.PENDING, nullable=False)
 
     application = relationship("Application", back_populates="votes")
+
+
+class Attachment(Base):
+    """Represents an uploaded file attachment for an application."""
+
+    __tablename__ = "attachments"
+
+    id = Column(Integer, primary_key=True, index=True)
+    application_id = Column(Integer, ForeignKey("applications.id"), nullable=False)
+    filename = Column(String, nullable=False)
+    filepath = Column(String, nullable=False, unique=True)
+    mime_type = Column(String, nullable=False)
+
+    application = relationship("Application", back_populates="attachments")

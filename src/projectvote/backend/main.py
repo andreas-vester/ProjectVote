@@ -1,14 +1,17 @@
 """FastAPI application for ProjectVote."""
 
 import os
+import uuid
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Annotated
 
+import aiofiles
 from dotenv import load_dotenv
-from fastapi import Depends, FastAPI, HTTPException
+from fastapi import Depends, FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
 from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -20,6 +23,7 @@ from .email_service import send_email
 from .models import (
     Application,
     ApplicationStatus,
+    Attachment,
     Base,
     VoteOption,
     VoteRecord,
@@ -120,6 +124,15 @@ class VoteOut(BaseModel):
     decision: VoteOption | None = Field(validation_alias="vote")
 
 
+class AttachmentOut(BaseModel):
+    """Schema for displaying an attachment."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    filename: str
+
+
 class ApplicationOut(BaseModel):
     """Schema for displaying an application in the archive."""
 
@@ -135,6 +148,7 @@ class ApplicationOut(BaseModel):
     costs: float
     status: ApplicationStatus
     votes: list[VoteOut]
+    attachments: list[AttachmentOut] = []
 
 
 # --- Email Sending Functions ---
@@ -256,23 +270,64 @@ async def read_root() -> dict:
 
 @app.post("/applications")
 async def submit_application(
-    application_data: ApplicationCreate,
     db: Annotated[AsyncSession, Depends(get_db)],
     board_members: Annotated[list[str], Depends(get_board_members)],
     settings: Annotated[Settings, Depends(get_app_settings)],
+    first_name: Annotated[str, Form()],
+    last_name: Annotated[str, Form()],
+    applicant_email: Annotated[str, Form()],
+    department: Annotated[str, Form()],
+    project_title: Annotated[str, Form()],
+    project_description: Annotated[str, Form()],
+    costs: Annotated[float, Form()],
+    attachment: Annotated[UploadFile | None, File()] = None,
 ) -> dict:
     """Create a new application and trigger the voting process."""
+    application_data = {
+        "first_name": first_name,
+        "last_name": last_name,
+        "applicant_email": applicant_email,
+        "department": department,
+        "project_title": project_title,
+        "project_description": project_description,
+        "costs": costs,
+    }
     new_application = Application(
-        **application_data.model_dump(),
+        **application_data,
         status=ApplicationStatus.PENDING.value,
     )
     db.add(new_application)
-    await db.flush()  # Flush to get the application ID before creating vote records
+    await db.flush()  # Flush to get the application ID
+
+    if attachment and attachment.filename:
+        # Ensure the uploads directory exists
+        uploads_dir = settings.project_root / "data" / "uploads"
+        uploads_dir.mkdir(parents=True, exist_ok=True)
+
+        # Sanitize filename and create a unique path
+        file_extension = Path(attachment.filename).suffix
+        saved_filename = f"{uuid.uuid4()}{file_extension}"
+        file_path = uploads_dir / saved_filename
+
+        # Save the file asynchronously
+        contents = await attachment.read()
+        async with aiofiles.open(file_path, "wb") as f:
+            await f.write(contents)
+
+        # Create the attachment record
+        new_attachment = Attachment(
+            application_id=new_application.id,
+            filename=attachment.filename,
+            filepath=str(file_path.relative_to(settings.project_root)),
+            mime_type=attachment.content_type,
+        )
+        db.add(new_attachment)
+
     await db.refresh(new_application)
 
     # Generate vote records and send links
     await send_voting_links(new_application, db, board_members, settings)
-    await db.commit()  # Commit all changes (application and vote records) here
+    await db.commit()  # Commit all changes (application, attachment, and vote records)
 
     return {
         "message": "Application submitted successfully",
@@ -288,7 +343,9 @@ async def get_vote_details(
     result = await db.execute(
         select(VoteRecord)
         .where(VoteRecord.token == token)
-        .options(selectinload(VoteRecord.application)),
+        .options(
+            selectinload(VoteRecord.application).selectinload(Application.attachments)
+        ),
     )
     vote_record = result.scalar_one_or_none()
 
@@ -305,6 +362,7 @@ async def get_vote_details(
         "project_description": app.project_description,
         "costs": app.costs,
         "department": app.department,
+        "attachments": [AttachmentOut.model_validate(att) for att in app.attachments],
     }
 
     return {
@@ -348,6 +406,50 @@ async def cast_vote(
     return {"message": "Vote cast successfully"}
 
 
+@app.get("/vote/{token}/attachments/{attachment_id}")
+async def get_attachment(
+    token: str,
+    attachment_id: int,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    settings: Annotated[Settings, Depends(get_app_settings)],
+) -> FileResponse:
+    """Get an attachment associated with a vote token."""
+    # Validate token
+    result = await db.execute(
+        select(VoteRecord)
+        .where(VoteRecord.token == token)
+        .options(
+            selectinload(VoteRecord.application).selectinload(Application.attachments)
+        )
+    )
+    vote_record = result.scalar_one_or_none()
+
+    if not vote_record:
+        raise HTTPException(status_code=404, detail="Invalid or expired token.")
+
+    # Find the requested attachment in the application's attachments
+    attachment = None
+    for att in vote_record.application.attachments:
+        if att.id == attachment_id:
+            attachment = att
+            break
+
+    if not attachment:
+        raise HTTPException(status_code=404, detail="Attachment not found.")
+
+    # Construct the full file path
+    file_path = settings.project_root / attachment.filepath
+
+    if not file_path.is_file():
+        raise HTTPException(status_code=404, detail="File not found on disk.")
+
+    return FileResponse(
+        path=file_path,
+        filename=attachment.filename,
+        media_type=attachment.mime_type,
+    )
+
+
 @app.get("/applications/archive")
 async def get_applications_archive(
     db: Annotated[AsyncSession, Depends(get_db)],
@@ -355,7 +457,7 @@ async def get_applications_archive(
     """Return a list of all applications with their current status and votes."""
     result = await db.execute(
         select(Application)
-        .options(selectinload(Application.votes))
+        .options(selectinload(Application.votes), selectinload(Application.attachments))
         .order_by(Application.id.desc()),
     )
     applications = result.scalars().unique().all()

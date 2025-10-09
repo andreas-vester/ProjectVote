@@ -1,93 +1,24 @@
 """Tests for the ProjectVote application."""
 
-from collections.abc import AsyncGenerator
 from http import HTTPStatus
-from pathlib import Path
 
 import pytest
-import pytest_asyncio
-from httpx import ASGITransport, AsyncClient
+from httpx import AsyncClient
 from pytest_mock import MockerFixture
 from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from projectvote.backend.config import Settings
-from projectvote.backend.database import DATABASE_URL, get_db
-from projectvote.backend.main import app, get_board_members
+from projectvote.backend.main import get_board_members
 from projectvote.backend.models import (
     Application,
     ApplicationStatus,
-    Base,
     VoteOption,
     VoteRecord,
     VoteStatus,
 )
 
-# Define a separate set of board members for testing
-TEST_BOARD_MEMBERS = [
-    "test.member1@example.com",
-    "test.member2@example.com",
-    "test.member3@example.com",
-    "test.member4@example.com",
-]
-EMAILS_SENT_FOR_FINAL_DECISION = 5
-
-# Setup a test database engine
-test_db_filename = DATABASE_URL.split("///")[-1].replace(
-    ".db", "_test.db"
-)  # Extract only the filename
-test_db_path = Path(test_db_filename)
-test_db_path.parent.mkdir(parents=True, exist_ok=True)
-test_engine = create_async_engine(
-    f"sqlite+aiosqlite:///./{test_db_filename}", echo=False
-)
-TestSessionLocal = async_sessionmaker(
-    bind=test_engine,
-    expire_on_commit=False,
-)
-
-
-@pytest_asyncio.fixture(name="session")
-async def session_fixture() -> AsyncGenerator[AsyncSession, None]:
-    """Yield a test database session and clean up after each test."""
-    async with test_engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
-
-    async with TestSessionLocal() as session:
-        yield session
-
-    async with test_engine.begin() as conn:
-        await conn.run_sync(Base.metadata.drop_all)
-
-    # Explicitly close the engine and remove the database file using pathlib
-    await test_engine.dispose()
-    if test_db_path.exists():
-        test_db_path.unlink()
-
-
-@pytest_asyncio.fixture(name="client")
-async def client_fixture(
-    session: AsyncSession, mocker: MockerFixture
-) -> AsyncGenerator[AsyncClient, None]:
-    """Yield an AsyncClient for testing the FastAPI app."""
-
-    async def get_test_db() -> AsyncGenerator[AsyncSession, None]:
-        yield session
-
-    def get_test_board_members() -> list[str]:
-        return TEST_BOARD_MEMBERS
-
-    # Mock the send_email function to prevent real emails from being sent
-    mocker.patch("projectvote.backend.main.send_email", new_callable=mocker.AsyncMock)
-
-    app.dependency_overrides[get_db] = get_test_db
-    app.dependency_overrides[get_board_members] = get_test_board_members
-
-    async with AsyncClient(
-        transport=ASGITransport(app=app), base_url="http://test"
-    ) as client:
-        yield client
-    app.dependency_overrides.clear()
+from .conftest import EMAILS_SENT_FOR_FINAL_DECISION, TEST_BOARD_MEMBERS
 
 
 @pytest.mark.asyncio
@@ -115,7 +46,7 @@ async def test_create_application(
         "project_description": "A test project description.",
         "costs": 123.45,
     }
-    response = await client.post("/applications", json=application_data)
+    response = await client.post("/applications", data=application_data)
     assert response.status_code == HTTPStatus.OK
     response_data = response.json()
     assert response_data["message"] == "Application submitted successfully"
@@ -192,7 +123,7 @@ async def test_get_vote_details_scenarios(
         "project_description": "Test token-based voting",
         "costs": 100.00,
     }
-    create_response = await client.post("/applications", json=app_data)
+    create_response = await client.post("/applications", data=app_data)
     app_id = create_response.json()["application_id"]
 
     result = await session.execute(
@@ -283,7 +214,7 @@ async def test_cast_vote_scenarios(
         "project_description": "A test for casting votes.",
         "costs": 150.00,
     }
-    create_response = await client.post("/applications", json=app_data)
+    create_response = await client.post("/applications", data=app_data)
     app_id = create_response.json()["application_id"]
 
     result = await session.execute(
@@ -392,7 +323,7 @@ async def test_voting_conclusion(
         "project_description": "A test for a specific voting scenario.",
         "costs": 500.00,
     }
-    create_response = await client.post("/applications", json=app_data)
+    create_response = await client.post("/applications", data=app_data)
     app_id = create_response.json()["application_id"]
 
     send_email_mock.reset_mock()
@@ -471,7 +402,7 @@ async def test_final_decision_email_content(
         "project_description": "A test for email content.",
         "costs": 200.00,
     }
-    create_response = await client.post("/applications", json=app_data)
+    create_response = await client.post("/applications", data=app_data)
     app_id = create_response.json()["application_id"]
 
     send_email_mock.reset_mock()
@@ -558,7 +489,7 @@ async def test_get_applications_archive(client: AsyncClient) -> None:
         "project_description": "A test for the view applications endpoint.",
         "costs": 99.99,
     }
-    await client.post("/applications", json=app_data)
+    await client.post("/applications", data=app_data)
 
     # 2. Call the endpoint to view applications
     response = await client.get("/applications/archive")
