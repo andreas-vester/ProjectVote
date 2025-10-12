@@ -612,9 +612,7 @@ async def test_get_attachment_with_wrong_attachment_id(
         "project_description": "Test wrong attachment ID",
         "costs": "100.00",
     }
-    files = {
-        "attachment": ("test.txt", b"Test content", "text/plain")
-    }
+    files = {"attachment": ("test.txt", b"Test content", "text/plain")}
     response = await client.post("/applications", data=app_data, files=files)
     app_id = response.json()["application_id"]
 
@@ -636,9 +634,7 @@ async def test_get_attachment_public(
     client: AsyncClient, mocker: MockerFixture
 ) -> None:
     """Test retrieving an attachment using the public endpoint."""
-    mocker.patch(
-        "projectvote.backend.main.send_email", new_callable=mocker.AsyncMock
-    )
+    mocker.patch("projectvote.backend.main.send_email", new_callable=mocker.AsyncMock)
 
     # Create application with attachment
     app_data = {
@@ -686,9 +682,7 @@ async def test_submit_application_without_attachment(
     client: AsyncClient, session: AsyncSession, mocker: MockerFixture
 ) -> None:
     """Test creating an application without an attachment."""
-    mocker.patch(
-        "projectvote.backend.main.send_email", new_callable=mocker.AsyncMock
-    )
+    mocker.patch("projectvote.backend.main.send_email", new_callable=mocker.AsyncMock)
 
     application_data = {
         "first_name": "No",
@@ -718,9 +712,7 @@ async def test_submit_application_with_large_file(
     client: AsyncClient, session: AsyncSession, mocker: MockerFixture
 ) -> None:
     """Test creating an application with a larger file."""
-    mocker.patch(
-        "projectvote.backend.main.send_email", new_callable=mocker.AsyncMock
-    )
+    mocker.patch("projectvote.backend.main.send_email", new_callable=mocker.AsyncMock)
 
     application_data = {
         "first_name": "Large",
@@ -815,9 +807,7 @@ async def test_get_vote_details_with_attachments(
         "project_description": "Test vote details with attachments",
         "costs": "200.00",
     }
-    files = {
-        "attachment": ("project_plan.pdf", b"Plan content", "application/pdf")
-    }
+    files = {"attachment": ("project_plan.pdf", b"Plan content", "application/pdf")}
     response = await client.post("/applications", data=app_data, files=files)
     app_id = response.json()["application_id"]
 
@@ -836,7 +826,9 @@ async def test_get_vote_details_with_attachments(
     assert "application" in response_data
     assert "attachments" in response_data["application"]
     assert len(response_data["application"]["attachments"]) == 1
-    assert response_data["application"]["attachments"][0]["filename"] == "project_plan.pdf"
+    assert (
+        response_data["application"]["attachments"][0]["filename"] == "project_plan.pdf"
+    )
 
 
 @pytest.mark.asyncio
@@ -844,9 +836,7 @@ async def test_archive_shows_multiple_applications(
     client: AsyncClient, mocker: MockerFixture
 ) -> None:
     """Test that archive endpoint returns multiple applications in order."""
-    mocker.patch(
-        "projectvote.backend.main.send_email", new_callable=mocker.AsyncMock
-    )
+    mocker.patch("projectvote.backend.main.send_email", new_callable=mocker.AsyncMock)
 
     # Create multiple applications
     for i in range(3):
@@ -866,7 +856,8 @@ async def test_archive_shows_multiple_applications(
     assert response.status_code == HTTPStatus.OK
 
     applications = response.json()
-    assert len(applications) >= 3
+    minimum_expected_count = 3
+    assert len(applications) >= minimum_expected_count
 
     # Verify applications are in descending order by ID (newest first)
     assert applications[0]["project_title"] == "Project 2"
@@ -927,8 +918,6 @@ async def test_all_votes_reject(
 @pytest.mark.asyncio
 async def test_board_members_with_whitespace(mocker: MockerFixture) -> None:
     """Test that board member emails with whitespace are properly trimmed."""
-    from projectvote.backend.main import get_board_members
-
     # Test with whitespace around emails
     test_emails = " board1@test.com , board2@test.com , board3@test.com "
     expected_list = ["board1@test.com", "board2@test.com", "board3@test.com"]
@@ -949,13 +938,15 @@ async def test_submit_application_with_various_file_extensions(
     client: AsyncClient, session: AsyncSession, mocker: MockerFixture
 ) -> None:
     """Test that various file extensions are handled correctly."""
-    mocker.patch(
-        "projectvote.backend.main.send_email", new_callable=mocker.AsyncMock
-    )
+    mocker.patch("projectvote.backend.main.send_email", new_callable=mocker.AsyncMock)
 
     file_types = [
         ("document.pdf", b"PDF content", "application/pdf"),
-        ("spreadsheet.xlsx", b"Excel content", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"),
+        (
+            "spreadsheet.xlsx",
+            b"Excel content",
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        ),
         ("image.png", b"PNG content", "image/png"),
     ]
 
