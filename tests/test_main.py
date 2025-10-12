@@ -7,6 +7,7 @@ from httpx import AsyncClient
 from pytest_mock import MockerFixture
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from projectvote.backend.config import Settings
 from projectvote.backend.main import get_board_members
@@ -539,3 +540,533 @@ def test_get_board_members_from_config(mocker: MockerFixture) -> None:
 
     # Assert
     assert actual_list == expected_list
+
+
+@pytest.mark.asyncio
+async def test_get_attachment_with_token(
+    client: AsyncClient, session: AsyncSession
+) -> None:
+    """Test retrieving an attachment using a valid vote token."""
+    # Create application with attachment
+    app_data = {
+        "first_name": "Attachment",
+        "last_name": "Test",
+        "applicant_email": "attachment.test@example.com",
+        "department": "IT",
+        "project_title": "Attachment Test",
+        "project_description": "Test attachment retrieval",
+        "costs": "100.00",
+    }
+    files = {
+        "attachment": ("test_document.pdf", b"PDF content here", "application/pdf")
+    }
+    response = await client.post("/applications", data=app_data, files=files)
+    app_id = response.json()["application_id"]
+
+    # Get a vote token
+    result = await session.execute(
+        select(VoteRecord).where(VoteRecord.application_id == app_id)
+    )
+    vote_record = result.scalars().first()
+    assert vote_record is not None
+
+    # Get attachment ID
+    app_result = await session.execute(
+        select(Application)
+        .where(Application.id == app_id)
+        .options(selectinload(Application.attachments))
+    )
+    application = app_result.scalar_one()
+    assert len(application.attachments) == 1
+    attachment_id = application.attachments[0].id
+
+    # Test retrieving the attachment with valid token
+    response = await client.get(
+        f"/vote/{vote_record.token}/attachments/{attachment_id}"
+    )
+    assert response.status_code == HTTPStatus.OK
+    assert response.headers["content-type"] == "application/pdf"
+    assert response.content == b"PDF content here"
+
+
+@pytest.mark.asyncio
+async def test_get_attachment_with_invalid_token(client: AsyncClient) -> None:
+    """Test retrieving an attachment with an invalid token."""
+    response = await client.get("/vote/invalid-token-123/attachments/1")
+    assert response.status_code == HTTPStatus.NOT_FOUND
+    assert response.json() == {"detail": "Invalid or expired token."}
+
+
+@pytest.mark.asyncio
+async def test_get_attachment_with_wrong_attachment_id(
+    client: AsyncClient, session: AsyncSession
+) -> None:
+    """Test retrieving an attachment that doesn't belong to the application."""
+    # Create application with attachment
+    app_data = {
+        "first_name": "Wrong",
+        "last_name": "Attachment",
+        "applicant_email": "wrong.attachment@example.com",
+        "department": "IT",
+        "project_title": "Wrong Attachment Test",
+        "project_description": "Test wrong attachment ID",
+        "costs": "100.00",
+    }
+    files = {
+        "attachment": ("test.txt", b"Test content", "text/plain")
+    }
+    response = await client.post("/applications", data=app_data, files=files)
+    app_id = response.json()["application_id"]
+
+    # Get a vote token
+    result = await session.execute(
+        select(VoteRecord).where(VoteRecord.application_id == app_id)
+    )
+    vote_record = result.scalars().first()
+    assert vote_record is not None
+
+    # Try to access a non-existent attachment ID
+    response = await client.get(f"/vote/{vote_record.token}/attachments/99999")
+    assert response.status_code == HTTPStatus.NOT_FOUND
+    assert response.json() == {"detail": "Attachment not found."}
+
+
+@pytest.mark.asyncio
+async def test_get_attachment_public(
+    client: AsyncClient, mocker: MockerFixture
+) -> None:
+    """Test retrieving an attachment using the public endpoint."""
+    mocker.patch(
+        "projectvote.backend.main.send_email", new_callable=mocker.AsyncMock
+    )
+
+    # Create application with attachment
+    app_data = {
+        "first_name": "Public",
+        "last_name": "Attachment",
+        "applicant_email": "public.attachment@example.com",
+        "department": "IT",
+        "project_title": "Public Attachment Test",
+        "project_description": "Test public attachment retrieval",
+        "costs": "150.00",
+    }
+    files = {
+        "attachment": (
+            "public_doc.txt",
+            b"Public document content",
+            "text/plain",
+        )
+    }
+    response = await client.post("/applications", data=app_data, files=files)
+    assert response.status_code == HTTPStatus.OK
+
+    # Get the attachment ID from the archive
+    archive_response = await client.get("/applications/archive")
+    applications = archive_response.json()
+    latest_app = applications[0]
+    attachment_id = latest_app["attachments"][0]["id"]
+
+    # Test retrieving the attachment via public endpoint
+    response = await client.get(f"/attachments/{attachment_id}")
+    assert response.status_code == HTTPStatus.OK
+    assert response.headers["content-type"] == "text/plain; charset=utf-8"
+    assert response.content == b"Public document content"
+
+
+@pytest.mark.asyncio
+async def test_get_attachment_public_not_found(client: AsyncClient) -> None:
+    """Test retrieving a non-existent attachment via public endpoint."""
+    response = await client.get("/attachments/99999")
+    assert response.status_code == HTTPStatus.NOT_FOUND
+    assert response.json() == {"detail": "Attachment not found."}
+
+
+@pytest.mark.asyncio
+async def test_submit_application_without_attachment(
+    client: AsyncClient, session: AsyncSession, mocker: MockerFixture
+) -> None:
+    """Test creating an application without an attachment."""
+    mocker.patch(
+        "projectvote.backend.main.send_email", new_callable=mocker.AsyncMock
+    )
+
+    application_data = {
+        "first_name": "No",
+        "last_name": "Attachment",
+        "applicant_email": "no.attachment@example.com",
+        "department": "Admin",
+        "project_title": "No Attachment Project",
+        "project_description": "A project without attachments.",
+        "costs": 50.00,
+    }
+    response = await client.post("/applications", data=application_data)
+    assert response.status_code == HTTPStatus.OK
+    app_id = response.json()["application_id"]
+
+    # Verify no attachments were created
+    result = await session.execute(
+        select(Application)
+        .where(Application.id == app_id)
+        .options(selectinload(Application.attachments))
+    )
+    application = result.scalar_one()
+    assert len(application.attachments) == 0
+
+
+@pytest.mark.asyncio
+async def test_submit_application_with_large_file(
+    client: AsyncClient, session: AsyncSession, mocker: MockerFixture
+) -> None:
+    """Test creating an application with a larger file."""
+    mocker.patch(
+        "projectvote.backend.main.send_email", new_callable=mocker.AsyncMock
+    )
+
+    application_data = {
+        "first_name": "Large",
+        "last_name": "File",
+        "applicant_email": "large.file@example.com",
+        "department": "Admin",
+        "project_title": "Large File Project",
+        "project_description": "A project with a larger file.",
+        "costs": 75.00,
+    }
+    # Create a larger file (10KB)
+    large_content = b"x" * 10240
+    files = {"attachment": ("large_doc.txt", large_content, "text/plain")}
+    response = await client.post("/applications", data=application_data, files=files)
+    assert response.status_code == HTTPStatus.OK
+    app_id = response.json()["application_id"]
+
+    # Verify attachment was created
+    result = await session.execute(
+        select(Application)
+        .where(Application.id == app_id)
+        .options(selectinload(Application.attachments))
+    )
+    application = result.scalar_one()
+    assert len(application.attachments) == 1
+    assert application.attachments[0].filename == "large_doc.txt"
+
+
+@pytest.mark.asyncio
+async def test_all_votes_approve(
+    client: AsyncClient, session: AsyncSession, mocker: MockerFixture
+) -> None:
+    """Test voting conclusion when all board members approve."""
+    send_email_mock = mocker.patch(
+        "projectvote.backend.main.send_email", new_callable=mocker.AsyncMock
+    )
+
+    app_data = {
+        "first_name": "All",
+        "last_name": "Approve",
+        "applicant_email": "all.approve@example.com",
+        "department": "Testing",
+        "project_title": "All Approve Test",
+        "project_description": "Test when all board members approve.",
+        "costs": 300.00,
+    }
+    create_response = await client.post("/applications", data=app_data)
+    app_id = create_response.json()["application_id"]
+
+    send_email_mock.reset_mock()
+
+    # Get all vote records
+    result = await session.execute(
+        select(VoteRecord)
+        .where(VoteRecord.application_id == app_id)
+        .order_by(VoteRecord.voter_email)
+    )
+    vote_records = result.scalars().all()
+    assert len(vote_records) == len(TEST_BOARD_MEMBERS)
+
+    # Cast all approve votes
+    for vote_record in vote_records:
+        await client.post(
+            f"/vote/{vote_record.token}",
+            json={"decision": VoteOption.APPROVE.value},
+        )
+
+    # Verify application was approved
+    updated_app = await session.get(Application, app_id)
+    assert updated_app is not None
+    actual_status = getattr(updated_app, "status", None)
+    if actual_status is not None and hasattr(actual_status, "value"):
+        actual_status = actual_status.value
+    assert actual_status == ApplicationStatus.APPROVED.value
+
+    # Verify that final decision emails were sent
+    assert send_email_mock.call_count == EMAILS_SENT_FOR_FINAL_DECISION
+
+
+@pytest.mark.asyncio
+async def test_get_vote_details_with_attachments(
+    client: AsyncClient, session: AsyncSession
+) -> None:
+    """Test that get_vote_details includes attachment information."""
+    # Create application with attachment
+    app_data = {
+        "first_name": "Vote",
+        "last_name": "Details",
+        "applicant_email": "vote.details@example.com",
+        "department": "IT",
+        "project_title": "Vote Details Test",
+        "project_description": "Test vote details with attachments",
+        "costs": "200.00",
+    }
+    files = {
+        "attachment": ("project_plan.pdf", b"Plan content", "application/pdf")
+    }
+    response = await client.post("/applications", data=app_data, files=files)
+    app_id = response.json()["application_id"]
+
+    # Get a vote token
+    result = await session.execute(
+        select(VoteRecord).where(VoteRecord.application_id == app_id)
+    )
+    vote_record = result.scalars().first()
+    assert vote_record is not None
+
+    # Get vote details
+    response = await client.get(f"/vote/{vote_record.token}")
+    assert response.status_code == HTTPStatus.OK
+
+    response_data = response.json()
+    assert "application" in response_data
+    assert "attachments" in response_data["application"]
+    assert len(response_data["application"]["attachments"]) == 1
+    assert response_data["application"]["attachments"][0]["filename"] == "project_plan.pdf"
+
+
+@pytest.mark.asyncio
+async def test_archive_shows_multiple_applications(
+    client: AsyncClient, mocker: MockerFixture
+) -> None:
+    """Test that archive endpoint returns multiple applications in order."""
+    mocker.patch(
+        "projectvote.backend.main.send_email", new_callable=mocker.AsyncMock
+    )
+
+    # Create multiple applications
+    for i in range(3):
+        app_data = {
+            "first_name": f"User{i}",
+            "last_name": "Test",
+            "applicant_email": f"user{i}@example.com",
+            "department": "Testing",
+            "project_title": f"Project {i}",
+            "project_description": f"Description for project {i}",
+            "costs": 100.00 * (i + 1),
+        }
+        await client.post("/applications", data=app_data)
+
+    # Get archive
+    response = await client.get("/applications/archive")
+    assert response.status_code == HTTPStatus.OK
+
+    applications = response.json()
+    assert len(applications) >= 3
+
+    # Verify applications are in descending order by ID (newest first)
+    assert applications[0]["project_title"] == "Project 2"
+    assert applications[1]["project_title"] == "Project 1"
+    assert applications[2]["project_title"] == "Project 0"
+
+
+@pytest.mark.asyncio
+async def test_all_votes_reject(
+    client: AsyncClient, session: AsyncSession, mocker: MockerFixture
+) -> None:
+    """Test voting conclusion when all board members reject."""
+    send_email_mock = mocker.patch(
+        "projectvote.backend.main.send_email", new_callable=mocker.AsyncMock
+    )
+
+    app_data = {
+        "first_name": "All",
+        "last_name": "Reject",
+        "applicant_email": "all.reject@example.com",
+        "department": "Testing",
+        "project_title": "All Reject Test",
+        "project_description": "Test when all board members reject.",
+        "costs": 400.00,
+    }
+    create_response = await client.post("/applications", data=app_data)
+    app_id = create_response.json()["application_id"]
+
+    send_email_mock.reset_mock()
+
+    # Get all vote records
+    result = await session.execute(
+        select(VoteRecord)
+        .where(VoteRecord.application_id == app_id)
+        .order_by(VoteRecord.voter_email)
+    )
+    vote_records = result.scalars().all()
+
+    # Cast all reject votes
+    for vote_record in vote_records:
+        await client.post(
+            f"/vote/{vote_record.token}",
+            json={"decision": VoteOption.REJECT.value},
+        )
+
+    # Verify application was rejected
+    updated_app = await session.get(Application, app_id)
+    assert updated_app is not None
+    actual_status = getattr(updated_app, "status", None)
+    if actual_status is not None and hasattr(actual_status, "value"):
+        actual_status = actual_status.value
+    assert actual_status == ApplicationStatus.REJECTED.value
+
+    # Verify that final decision emails were sent
+    assert send_email_mock.call_count == EMAILS_SENT_FOR_FINAL_DECISION
+
+
+@pytest.mark.asyncio
+async def test_board_members_with_whitespace(mocker: MockerFixture) -> None:
+    """Test that board member emails with whitespace are properly trimmed."""
+    from projectvote.backend.main import get_board_members
+
+    # Test with whitespace around emails
+    test_emails = " board1@test.com , board2@test.com , board3@test.com "
+    expected_list = ["board1@test.com", "board2@test.com", "board3@test.com"]
+
+    mock_settings_instance = mocker.MagicMock(spec=Settings)
+    mock_settings_instance.board_members = test_emails
+
+    actual_list = get_board_members(mock_settings_instance)
+
+    assert actual_list == expected_list
+    # Verify no leading/trailing whitespace
+    for email in actual_list:
+        assert email == email.strip()
+
+
+@pytest.mark.asyncio
+async def test_submit_application_with_various_file_extensions(
+    client: AsyncClient, session: AsyncSession, mocker: MockerFixture
+) -> None:
+    """Test that various file extensions are handled correctly."""
+    mocker.patch(
+        "projectvote.backend.main.send_email", new_callable=mocker.AsyncMock
+    )
+
+    file_types = [
+        ("document.pdf", b"PDF content", "application/pdf"),
+        ("spreadsheet.xlsx", b"Excel content", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"),
+        ("image.png", b"PNG content", "image/png"),
+    ]
+
+    for filename, content, mime_type in file_types:
+        app_data = {
+            "first_name": "Extension",
+            "last_name": "Test",
+            "applicant_email": f"ext.test.{filename}@example.com",
+            "department": "IT",
+            "project_title": f"Test {filename}",
+            "project_description": "Test various file extensions",
+            "costs": "100.00",
+        }
+        files = {"attachment": (filename, content, mime_type)}
+        response = await client.post("/applications", data=app_data, files=files)
+        assert response.status_code == HTTPStatus.OK
+
+        app_id = response.json()["application_id"]
+
+        # Verify attachment was created with correct mime type
+        result = await session.execute(
+            select(Application)
+            .where(Application.id == app_id)
+            .options(selectinload(Application.attachments))
+        )
+        application = result.scalar_one()
+        assert len(application.attachments) == 1
+        assert application.attachments[0].filename == filename
+        assert application.attachments[0].mime_type == mime_type
+
+
+@pytest.mark.asyncio
+async def test_vote_options_in_get_vote_details(
+    client: AsyncClient, session: AsyncSession
+) -> None:
+    """Test that vote options are returned in get_vote_details response."""
+    app_data = {
+        "first_name": "Options",
+        "last_name": "Test",
+        "applicant_email": "options.test@example.com",
+        "department": "IT",
+        "project_title": "Vote Options Test",
+        "project_description": "Test vote options in response",
+        "costs": "150.00",
+    }
+    response = await client.post("/applications", data=app_data)
+    app_id = response.json()["application_id"]
+
+    # Get a vote token
+    result = await session.execute(
+        select(VoteRecord).where(VoteRecord.application_id == app_id)
+    )
+    vote_record = result.scalars().first()
+    assert vote_record is not None
+
+    # Get vote details
+    response = await client.get(f"/vote/{vote_record.token}")
+    assert response.status_code == HTTPStatus.OK
+
+    response_data = response.json()
+    assert "vote_options" in response_data
+    assert VoteOption.APPROVE.value in response_data["vote_options"]
+    assert VoteOption.REJECT.value in response_data["vote_options"]
+
+
+@pytest.mark.asyncio
+async def test_partial_voting_does_not_finalize(
+    client: AsyncClient, session: AsyncSession, mocker: MockerFixture
+) -> None:
+    """Test that application status doesn't change until all votes are cast."""
+    send_email_mock = mocker.patch(
+        "projectvote.backend.main.send_email", new_callable=mocker.AsyncMock
+    )
+
+    app_data = {
+        "first_name": "Partial",
+        "last_name": "Vote",
+        "applicant_email": "partial.vote@example.com",
+        "department": "Testing",
+        "project_title": "Partial Voting Test",
+        "project_description": "Test that partial votes don't finalize.",
+        "costs": 250.00,
+    }
+    create_response = await client.post("/applications", data=app_data)
+    app_id = create_response.json()["application_id"]
+
+    send_email_mock.reset_mock()
+
+    # Get all vote records
+    result = await session.execute(
+        select(VoteRecord)
+        .where(VoteRecord.application_id == app_id)
+        .order_by(VoteRecord.voter_email)
+    )
+    vote_records = result.scalars().all()
+    assert len(vote_records) == len(TEST_BOARD_MEMBERS)
+
+    # Cast only 3 out of 4 votes
+    for i in range(3):
+        await client.post(
+            f"/vote/{vote_records[i].token}",
+            json={"decision": VoteOption.APPROVE.value},
+        )
+
+    # Verify application is still pending
+    updated_app = await session.get(Application, app_id)
+    assert updated_app is not None
+    actual_status = getattr(updated_app, "status", None)
+    if actual_status is not None and hasattr(actual_status, "value"):
+        actual_status = actual_status.value
+    assert actual_status == ApplicationStatus.PENDING.value
+
+    # Verify that NO final decision emails were sent yet
+    assert send_email_mock.call_count == 0

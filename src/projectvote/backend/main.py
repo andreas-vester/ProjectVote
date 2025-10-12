@@ -182,7 +182,10 @@ async def send_voting_links(
                 "token": vote_record.token,
                 "frontend_url": settings.frontend_url,
                 "backend_url": settings.backend_url,
-                "attachments": [{"id": att.id, "filename": att.filename} for att in application.attachments],
+                "attachments": [
+                    {"id": att.id, "filename": att.filename}
+                    for att in application.attachments
+                ],
             },
             template_name="new_application.html",
             settings=settings,
