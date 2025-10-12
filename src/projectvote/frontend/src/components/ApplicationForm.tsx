@@ -10,7 +10,9 @@ import {
   Alert,
   CircularProgress,
   Grid,
+  FormHelperText,
 } from '@mui/material';
+import { AttachFile, Close } from '@mui/icons-material';
 import { submitApplication, type ApplicationCreate } from '../apiService';
 
 const ApplicationForm: React.FC = () => {
@@ -24,6 +26,8 @@ const ApplicationForm: React.FC = () => {
     costs: '',
   });
 
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [fileError, setFileError] = useState<string>('');
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -32,6 +36,17 @@ const ApplicationForm: React.FC = () => {
     message: string;
     severity: 'success' | 'error';
   } | null>(null);
+
+  // File validation constants
+  const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+  const ALLOWED_FILE_TYPES = [
+    'application/pdf',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document', // DOCX
+    'application/msword', // DOC
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', // XLSX
+    'application/vnd.ms-excel', // XLS
+  ];
+  const ALLOWED_EXTENSIONS = ['.pdf', '.doc', '.docx', '.xls', '.xlsx'];
 
   const validate = (name: string, value: string) => {
     let error = '';
@@ -45,6 +60,26 @@ const ApplicationForm: React.FC = () => {
     return error;
   };
 
+  const validateFile = (file: File): string => {
+    // Check file size
+    if (file.size > MAX_FILE_SIZE) {
+      return 'Die Dateigröße darf 10 MB nicht überschreiten';
+    }
+
+    // Check file extension
+    const fileExtension = '.' + file.name.split('.').pop()?.toLowerCase();
+    if (!ALLOWED_EXTENSIONS.includes(fileExtension)) {
+      return 'Nur PDF, DOC, DOCX, XLS und XLSX Dateien sind erlaubt';
+    }
+
+    // Check MIME type
+    if (!ALLOWED_FILE_TYPES.includes(file.type)) {
+      return 'Ungültiger Dateityp';
+    }
+
+    return '';
+  };
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData((prevData) => ({
@@ -56,6 +91,31 @@ const ApplicationForm: React.FC = () => {
       ...prevErrors,
       [name]: error,
     }));
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const error = validateFile(file);
+      if (error) {
+        setFileError(error);
+        setSelectedFile(null);
+        e.target.value = ''; // Reset input
+      } else {
+        setFileError('');
+        setSelectedFile(file);
+      }
+    }
+  };
+
+  const handleRemoveFile = () => {
+    setSelectedFile(null);
+    setFileError('');
+    // Reset file input
+    const fileInput = document.getElementById('attachment-input') as HTMLInputElement;
+    if (fileInput) {
+      fileInput.value = '';
+    }
   };
 
   const handleCloseSnackbar = () => {
@@ -87,7 +147,7 @@ const ApplicationForm: React.FC = () => {
         costs: parseFloat(formData.costs) || 0,
       };
 
-      const response = await submitApplication(applicationData);
+      const response = await submitApplication(applicationData, selectedFile);
 
       setSnackbar({
         open: true,
@@ -105,6 +165,7 @@ const ApplicationForm: React.FC = () => {
         project_description: '',
         costs: '',
       });
+      handleRemoveFile();
     } catch (error) {
       console.error('Fehler beim Einreichen des Antrags:', error);
       setSnackbar({
@@ -220,6 +281,61 @@ const ApplicationForm: React.FC = () => {
                 error={!!errors.costs}
                 helperText={errors.costs}
               />
+            </Grid>
+            <Grid>
+              <Box sx={{ mt: 1 }}>
+                <Typography variant="body2" color="text.secondary" gutterBottom>
+                  Anhang (optional)
+                </Typography>
+                <Button
+                  variant="outlined"
+                  component="label"
+                  startIcon={<AttachFile />}
+                  fullWidth
+                  sx={{ justifyContent: 'flex-start', textTransform: 'none' }}
+                >
+                  {selectedFile ? 'Datei ändern' : 'Datei auswählen'}
+                  <input
+                    type="file"
+                    id="attachment-input"
+                    hidden
+                    accept=".pdf,.doc,.docx,.xls,.xlsx"
+                    onChange={handleFileChange}
+                  />
+                </Button>
+                {selectedFile && (
+                  <Box
+                    sx={{
+                      mt: 1,
+                      p: 1,
+                      border: '1px solid #e0e0e0',
+                      borderRadius: 1,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      backgroundColor: '#f5f5f5',
+                    }}
+                  >
+                    <Typography variant="body2" sx={{ wordBreak: 'break-all' }}>
+                      {selectedFile.name} ({(selectedFile.size / 1024).toFixed(1)} KB)
+                    </Typography>
+                    <Button
+                      size="small"
+                      onClick={handleRemoveFile}
+                      startIcon={<Close />}
+                      sx={{ minWidth: 'auto' }}
+                    >
+                      Entfernen
+                    </Button>
+                  </Box>
+                )}
+                {fileError && (
+                  <FormHelperText error>{fileError}</FormHelperText>
+                )}
+                <FormHelperText>
+                  Erlaubte Formate: PDF, DOC, DOCX, XLS, XLSX (max. 10 MB)
+                </FormHelperText>
+              </Box>
             </Grid>
           </Grid>
           <Button

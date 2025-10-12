@@ -41,6 +41,11 @@ export interface VoteOut {
   decision: VoteOption | null;
 }
 
+export interface AttachmentOut {
+  id: number;
+  filename: string;
+}
+
 export interface ApplicationOut {
   id: number;
   first_name: string;
@@ -52,6 +57,7 @@ export interface ApplicationOut {
   costs: number;
   status: ApplicationStatus;
   votes: VoteOut[];
+  attachments: AttachmentOut[];
 }
 
 export interface VoteDetails {
@@ -62,6 +68,7 @@ export interface VoteDetails {
         project_description: string;
         costs: number;
         department: string;
+        attachments: AttachmentOut[];
     };
     vote_options: VoteOption[];
 }
@@ -83,14 +90,40 @@ export const getApplicationsArchive = async (): Promise<ApplicationOut[]> => {
   }
 };
 
+
 /**
  * Submits a new application to the backend.
  * @param applicationData - The data for the new application.
+ * @param file - Optional file attachment.
  * @returns The response from the server.
  */
-export const submitApplication = async (applicationData: ApplicationCreate) => {
+export const submitApplication = async (
+  applicationData: ApplicationCreate,
+  file: File | null = null
+) => {
   try {
-    const response = await apiClient.post('/applications', applicationData);
+    // Create FormData to support file uploads
+    const formData = new FormData();
+    
+    // Append all application fields to FormData
+    formData.append('first_name', applicationData.first_name);
+    formData.append('last_name', applicationData.last_name);
+    formData.append('applicant_email', applicationData.applicant_email);
+    formData.append('department', applicationData.department);
+    formData.append('project_title', applicationData.project_title);
+    formData.append('project_description', applicationData.project_description);
+    formData.append('costs', applicationData.costs.toString());
+    
+    // Append file if provided
+    if (file) {
+      formData.append('attachment', file);
+    }
+    
+    const response = await apiClient.post('/applications', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
     return response.data;
   } catch (error) {
     console.error('Error submitting application:', error);
@@ -127,4 +160,23 @@ export const castVote = async (token: string, voteData: VoteCreate) => {
     console.error('Error casting vote:', error);
     throw error;
   }
+};
+
+/**
+ * Gets the download URL for an attachment.
+ * @param token - The vote token.
+ * @param attachmentId - The attachment ID.
+ * @returns The download URL.
+ */
+export const getAttachmentUrl = (token: string, attachmentId: number): string => {
+  return `/api/vote/${token}/attachments/${attachmentId}`;
+};
+
+/**
+ * Gets the download URL for an attachment (public archive access).
+ * @param attachmentId - The attachment ID.
+ * @returns The download URL.
+ */
+export const getPublicAttachmentUrl = (attachmentId: number): string => {
+  return `/api/attachments/${attachmentId}`;
 };

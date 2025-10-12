@@ -14,11 +14,18 @@ import {
   FormControlLabel,
   Radio,
   Snackbar,
+  List,
+  ListItem,
+  ListItemIcon,
+  ListItemText,
+  Link,
 } from '@mui/material';
+import { AttachFile } from '@mui/icons-material';
 import axios from 'axios';
 import {
   getVoteDetails,
   castVote,
+  getAttachmentUrl,
   type VoteDetails,
   type VoteCreate,
   VoteOption,
@@ -127,6 +134,33 @@ const VotingForm: React.FC = () => {
           <Typography><b>Abteilung/Fachschaft:</b> {application.department}</Typography>
           <Typography><b>Kosten:</b> €{application.costs.toFixed(2)}</Typography>
           <Typography><b>Beschreibung:</b> {application.project_description}</Typography>
+          
+          {application.attachments && application.attachments.length > 0 && (
+            <Box sx={{ mt: 2 }}>
+              <Typography variant="subtitle2" gutterBottom>
+                <b>Anhänge:</b>
+              </Typography>
+              <List dense>
+                {application.attachments.map((attachment) => (
+                  <ListItem key={attachment.id} sx={{ pl: 0 }}>
+                    <ListItemIcon>
+                      <AttachFile />
+                    </ListItemIcon>
+                    <ListItemText>
+                      <Link
+                        href={getAttachmentUrl(token!, attachment.id)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        underline="hover"
+                      >
+                        {attachment.filename}
+                      </Link>
+                    </ListItemText>
+                  </ListItem>
+                ))}
+              </List>
+            </Box>
+          )}
         </Box>
 
         <Typography variant="h5" component="h2" gutterBottom>

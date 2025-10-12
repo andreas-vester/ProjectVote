@@ -15,10 +15,16 @@ import {
   IconButton,
   TableSortLabel,
   TextField,
+  List,
+  ListItem,
+  ListItemIcon,
+  ListItemText,
+  Link,
 } from '@mui/material';
+import { AttachFile } from '@mui/icons-material';
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
-import { getApplicationsArchive, type ApplicationOut, ApplicationStatus, VoteOption } from '../apiService';
+import { getApplicationsArchive, type ApplicationOut, ApplicationStatus, VoteOption, getPublicAttachmentUrl } from '../apiService';
 
 const applicationStatusTranslations: Record<ApplicationStatus, string> = {
   [ApplicationStatus.PENDING]: 'Ausstehend',
@@ -79,6 +85,32 @@ const Row: React.FC<{ application: ApplicationOut }> = ({ application }) => {
                   ))}
                 </TableBody>
               </Table>
+              {application.attachments && application.attachments.length > 0 && (
+                <Box sx={{ mt: 2 }}>
+                  <Typography variant="h6" gutterBottom component="div">
+                    Anhänge
+                  </Typography>
+                  <List dense>
+                    {application.attachments.map((attachment) => (
+                      <ListItem key={attachment.id} sx={{ pl: 0 }}>
+                        <ListItemIcon>
+                          <AttachFile />
+                        </ListItemIcon>
+                        <ListItemText>
+                          <Link
+                            href={getPublicAttachmentUrl(attachment.id)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            underline="hover"
+                          >
+                            {attachment.filename}
+                          </Link>
+                        </ListItemText>
+                      </ListItem>
+                    ))}
+                  </List>
+                </Box>
+              )}
             </Box>
           </Collapse>
         </TableCell>
