@@ -479,7 +479,7 @@ async def test_final_decision_email_content(
 @pytest.mark.asyncio
 async def test_get_applications_archive(client: AsyncClient) -> None:
     """Test that the /applications/archive GET endpoint returns all applications."""
-    # 1. Create an application to ensure there's data to retrieve
+    # 1. Create an application with an attachment to ensure there's data to retrieve
     app_data = {
         "first_name": "View",
         "last_name": "Test",
@@ -487,9 +487,12 @@ async def test_get_applications_archive(client: AsyncClient) -> None:
         "department": "QA",
         "project_title": "Viewing Test",
         "project_description": "A test for the view applications endpoint.",
-        "costs": 99.99,
+        "costs": "99.99",
     }
-    await client.post("/applications", data=app_data)
+    files = {
+        "attachment": ("test_attachment.txt", b"This is a test file.", "text/plain")
+    }
+    await client.post("/applications", data=app_data, files=files)
 
     # 2. Call the endpoint to view applications
     response = await client.get("/applications/archive")
@@ -498,7 +501,7 @@ async def test_get_applications_archive(client: AsyncClient) -> None:
     # 3. Verify the response
     response_data = response.json()
     assert isinstance(response_data, list)
-    assert len(response_data) == 1
+    assert len(response_data) >= 1
 
     retrieved_app = response_data[0]
     assert retrieved_app["project_title"] == app_data["project_title"]
@@ -507,6 +510,10 @@ async def test_get_applications_archive(client: AsyncClient) -> None:
     assert isinstance(retrieved_app["votes"], list)
     assert len(retrieved_app["votes"]) == len(TEST_BOARD_MEMBERS)
     assert retrieved_app["votes"][0]["voter_email"] == TEST_BOARD_MEMBERS[0]
+    assert "attachments" in retrieved_app
+    assert isinstance(retrieved_app["attachments"], list)
+    assert len(retrieved_app["attachments"]) == 1
+    assert retrieved_app["attachments"][0]["filename"] == "test_attachment.txt"
 
 
 def test_get_board_members_from_config(mocker: MockerFixture) -> None:

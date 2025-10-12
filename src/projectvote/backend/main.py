@@ -179,6 +179,10 @@ async def send_voting_links(
                 "project_title": application.project_title,
                 "costs": application.costs,
                 "vote_url": vote_url,
+                "token": vote_record.token,
+                "frontend_url": settings.frontend_url,
+                "backend_url": settings.backend_url,
+                "attachments": [{"id": att.id, "filename": att.filename} for att in application.attachments],
             },
             template_name="new_application.html",
             settings=settings,
@@ -319,11 +323,12 @@ async def submit_application(
             application_id=new_application.id,
             filename=attachment.filename,
             filepath=str(file_path.relative_to(settings.project_root)),
-            mime_type=attachment.content_type,
+            mime_type=attachment.content_type or "application/octet-stream",
         )
         db.add(new_attachment)
 
-    await db.refresh(new_application)
+    # Refresh the application with attachments relationship loaded
+    await db.refresh(new_application, attribute_names=["attachments"])
 
     # Generate vote records and send links
     await send_voting_links(new_application, db, board_members, settings)
@@ -433,6 +438,32 @@ async def get_attachment(
         if att.id == attachment_id:
             attachment = att
             break
+
+    if not attachment:
+        raise HTTPException(status_code=404, detail="Attachment not found.")
+
+    # Construct the full file path
+    file_path = settings.project_root / attachment.filepath
+
+    if not file_path.is_file():
+        raise HTTPException(status_code=404, detail="File not found on disk.")
+
+    return FileResponse(
+        path=file_path,
+        filename=attachment.filename,
+        media_type=attachment.mime_type,
+    )
+
+
+@app.get("/attachments/{attachment_id}")
+async def get_attachment_public(
+    attachment_id: int,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    settings: Annotated[Settings, Depends(get_app_settings)],
+) -> FileResponse:
+    """Get an attachment by ID (public access for archive)."""
+    result = await db.execute(select(Attachment).where(Attachment.id == attachment_id))
+    attachment = result.scalar_one_or_none()
 
     if not attachment:
         raise HTTPException(status_code=404, detail="Attachment not found.")
