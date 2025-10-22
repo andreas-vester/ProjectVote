@@ -134,7 +134,7 @@ const VotingForm: React.FC = () => {
           <Typography><b>Abteilung/Fachschaft:</b> {application.department}</Typography>
           <Typography><b>Kosten:</b> €{application.costs.toFixed(2)}</Typography>
           <Typography><b>Beschreibung:</b> {application.project_description}</Typography>
-          
+
           {application.attachments && application.attachments.length > 0 && (
             <Box sx={{ mt: 2 }}>
               <Typography variant="subtitle2" gutterBottom>

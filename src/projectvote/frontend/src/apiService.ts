@@ -104,7 +104,7 @@ export const submitApplication = async (
   try {
     // Create FormData to support file uploads
     const formData = new FormData();
-    
+
     // Append all application fields to FormData
     formData.append('first_name', applicationData.first_name);
     formData.append('last_name', applicationData.last_name);
@@ -113,12 +113,12 @@ export const submitApplication = async (
     formData.append('project_title', applicationData.project_title);
     formData.append('project_description', applicationData.project_description);
     formData.append('costs', applicationData.costs.toString());
-    
+
     // Append file if provided
     if (file) {
       formData.append('attachment', file);
     }
-    
+
     const response = await apiClient.post('/applications', formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
