@@ -23,7 +23,7 @@ Implement backend API endpoints to manage the token-based voting process for boa
 *   [x] Implement logic to validate the token and ensure the vote has not been cast previously.
 *   [x] Record the vote in the database, updating the `VoteRecord` status.
 *   [x] After a vote is cast, check if all votes for the associated application have been received.
-*   [x] If all votes are in, apply the decision logic (simple majority, tie = reject) to update the `Application` status.
+*   [x] If all votes are in, apply the decision logic: simple majority of non-abstaining votes (approve vs. reject). A tie among decisive votes or all abstentions results in rejection. Update the `Application` status accordingly.
 *   [x] Handle appropriate success and error responses.
 
 ### Phase 3: Email Simulation Integration

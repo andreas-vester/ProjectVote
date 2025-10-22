@@ -299,6 +299,36 @@ async def test_cast_vote_scenarios(
             ],
             ApplicationStatus.REJECTED,
         ),
+        (
+            "2 approve / 2 abstain -> APPROVED",
+            [
+                VoteOption.APPROVE,
+                VoteOption.APPROVE,
+                VoteOption.ABSTAIN,
+                VoteOption.ABSTAIN,
+            ],
+            ApplicationStatus.APPROVED,
+        ),
+        (
+            "1 approve / 1 reject / 2 abstain -> REJECTED",
+            [
+                VoteOption.APPROVE,
+                VoteOption.REJECT,
+                VoteOption.ABSTAIN,
+                VoteOption.ABSTAIN,
+            ],
+            ApplicationStatus.REJECTED,
+        ),
+        (
+            "All abstain -> REJECTED",
+            [
+                VoteOption.ABSTAIN,
+                VoteOption.ABSTAIN,
+                VoteOption.ABSTAIN,
+                VoteOption.ABSTAIN,
+            ],
+            ApplicationStatus.REJECTED,
+        ),
     ],
 )
 @pytest.mark.asyncio

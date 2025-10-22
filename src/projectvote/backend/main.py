@@ -261,11 +261,21 @@ async def _check_and_finalize_voting(
 
     # If all board members have voted, determine the outcome.
     if len(cast_votes) >= len(board_members):
-        approvals = sum(1 for v in cast_votes if v.vote == VoteOption.APPROVE)
-        if approvals > len(board_members) / 2:
-            application.status = ApplicationStatus.APPROVED.value  # type: ignore[attr-defined]
+        # Exclude abstentions from the decision-making process
+        decisive_votes = [
+            v for v in cast_votes if v.vote in [VoteOption.APPROVE, VoteOption.REJECT]
+        ]
+
+        # If there are no decisive votes (all abstained), reject the application.
+        if not decisive_votes:
+            application.status = ApplicationStatus.REJECTED.value
         else:
-            application.status = ApplicationStatus.REJECTED.value  # type: ignore[attr-defined]
+            approvals = sum(1 for v in decisive_votes if v.vote == VoteOption.APPROVE)
+            # Simple majority of non-abstaining votes
+            if approvals > len(decisive_votes) / 2:
+                application.status = ApplicationStatus.APPROVED.value
+            else:
+                application.status = ApplicationStatus.REJECTED.value
 
         await db.commit()
         await send_final_decision_emails(application, board_members, settings)
