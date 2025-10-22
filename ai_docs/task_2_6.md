@@ -12,19 +12,19 @@ Update the frontend application submission form to include a file upload feature
 ## Tasks
 
 ### Phase 1: Form Modification
-*   [ ] Add a file input component to the `ApplicationForm.tsx`.
-*   [ ] Style the file input to be user-friendly.
+*   [x] Add a file input component to the `ApplicationForm.tsx`.
+*   [x] Style the file input to be user-friendly.
 
 ### Phase 2: Client-Side Validation
-*   [ ] Implement validation to restrict file types (e.g., PDF, XLSX, DOCX).
-*   [ ] Add a file size limit to prevent large uploads.
-*   [ ] Provide clear error messages for invalid files.
+*   [x] Implement validation to restrict file types (e.g., PDF, XLSX, DOCX).
+*   [x] Add a file size limit to prevent large uploads.
+*   [x] Provide clear error messages for invalid files.
 
 ### Phase 3: API Integration
-*   [ ] Modify the `submitApplication` function in `apiService.ts` to send `multipart/form-data`.
-*   [ ] Update the form submission logic in `ApplicationForm.tsx` to include the file in the request.
+*   [x] Modify the `submitApplication` function in `apiService.ts` to send `multipart/form-data`.
+*   [x] Update the form submission logic in `ApplicationForm.tsx` to include the file in the request.
 
 ### Phase 4: User Feedback
-*   [ ] Display the name of the selected file.
-*   [ ] Show a progress indicator during file upload.
-*   [ ] Provide clear success or error messages related to the file upload.
+*   [x] Display the name of the selected file.
+*   [x] Show a progress indicator during file upload.
+*   [x] Provide clear success or error messages related to the file upload.
