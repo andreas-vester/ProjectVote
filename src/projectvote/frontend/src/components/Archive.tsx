@@ -67,6 +67,15 @@ const Row: React.FC<{ application: ApplicationOut }> = ({ application }) => {
           <Collapse in={open} timeout="auto" unmountOnExit>
             <Box sx={{ margin: 1 }}>
               <Typography variant="h6" gutterBottom component="div">
+                Details
+              </Typography>
+              <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap' }} gutterBottom>
+                <strong>Projektbeschreibung:</strong>
+                <br />
+                {application.project_description}
+              </Typography>
+
+              <Typography variant="h6" gutterBottom component="div" sx={{ mt: 2 }}>
                 Abstimmungsdetails
               </Typography>
               <Table size="small" aria-label="purchases">

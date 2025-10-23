@@ -34,5 +34,5 @@ This document outlines the core functional requirements for the web application 
 *   **Purpose:** Provide a historical record of all funding applications and their outcomes.
 *   **Features:**
     *   A view displaying all submitted applications.
-    *   For each application, display its current status (pending, approved, rejected).
-    *   Ability to view individual vote decisions from board members for each application.
+    *   For each application, display key details like applicant name, project title, department, costs, and status (pending, approved, rejected).
+    *   Ability to view expanded details for each application, including the full project description and individual vote decisions from board members.

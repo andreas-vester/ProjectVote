@@ -13,8 +13,9 @@ Develop a frontend component that displays a comprehensive archive of all fundin
 
 ### Phase 1: Component Structure and Data Display
 *   [x] Create a new React component for the application archive.
-*   [x] Design a tabular or list-based layout to display key application details (e.g., project title, applicant, department, costs, status).
-*   [x] Implement a mechanism to expand/collapse rows or sections to reveal detailed vote records for each application.
+*   [x] Design a tabular or list-based layout to display key application details (e.g., project title, department, costs, status).
+*   [x] Ensure the applicant's full name (`first_name` `last_name`) is clearly displayed in an "Applicant" column.
+*   [x] Implement a mechanism to expand/collapse rows or sections to reveal detailed information.
 
 ### Phase 2: Fetching Archive Data
 *   [x] Implement a function to make a GET request to the backend's application archive API endpoint.
@@ -22,6 +23,7 @@ Develop a frontend component that displays a comprehensive archive of all fundin
 *   [x] Display a clear message or visual indicator when no applications are available (empty state).
 
 ### Phase 3: Displaying Vote Details
+*   [x] Within the expanded view for each application, display the full `project_description`.
 *   [x] Within the expanded view for each application, display the `voter_email` and `decision` for each `VoteRecord`.
 *   [x] Format the vote decisions (e.g., "Approved", "Rejected") for user readability.
 
