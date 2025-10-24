@@ -1,20 +1,18 @@
 services:
   backend:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    image: ghcr.io/andreas-vester/projectvote-backend:latest
     ports:
       - "8008:8008"
     volumes:
       - ./data:/app/data
     env_file:
       - .env
+    restart: unless-stopped
 
   frontend:
-    build:
-      context: ./src/projectvote/frontend
-      dockerfile: Dockerfile
+    image: ghcr.io/andreas-vester/projectvote-frontend:latest
     ports:
       - "5173:80"
     depends_on:
       - backend
+    restart: unless-stopped

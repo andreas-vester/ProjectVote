@@ -277,7 +277,9 @@ async def test_archive_and_vote_details_include_attachments(
     vote_result = await session.execute(
         select(VoteRecord).where(VoteRecord.application_id == app_id)
     )
-    token = vote_result.scalars().first().token
+    vote_record = vote_result.scalars().first()
+    assert vote_record is not None
+    token = vote_record.token
     vote_details_response = await client.get(f"/vote/{token}")
     assert vote_details_response.status_code == HTTPStatus.OK
     vote_data = vote_details_response.json()

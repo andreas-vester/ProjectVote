@@ -1,6 +1,6 @@
 # Stage 1: Build dependencies using the official astral/uv image
 # This image contains Python 3.13 and uv pre-installed.
-FROM ghcr.io/astral-sh/uv:python3.13-bookworm-slim AS builder
+FROM ghcr.io/astral-sh/uv:python3.14-trixie-slim AS builder
 
 # Set the working directory
 WORKDIR /app
@@ -13,7 +13,7 @@ RUN uv sync
 
 
 # Stage 2: Create the final, clean runtime image
-FROM python:3.13-slim-bookworm
+FROM python:3.14-slim-trixie
 
 # Set the working directory
 WORKDIR /app

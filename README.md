@@ -1,5 +1,8 @@
 # ProjectVote
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Build Status](https://github.com/andreas-vester/ProjectVote/actions/workflows/main.yml/badge.svg)](https://github.com/andreas-vester/ProjectVote/actions/workflows/main.yml)
+
 ProjectVote is a funding application management system designed to streamline the process of submitting, reviewing, and deciding on project funding requests for associations and organizations.
 
 ## Features
@@ -9,36 +12,132 @@ ProjectVote is a funding application management system designed to streamline th
 -   **Automated Decision Processing:** Automatic status updates and notifications based on board votes.
 -   **Application Archive:** A historical record of all funding applications and their outcomes.
 
+## Application Workflow
+
+Here's a high-level overview of how the application process works in ProjectVote:
+
+```mermaid
+graph LR
+    A[Applicant] -- Submits Application --> B(Application);
+    B -- Sent to --> C{Board Members};
+    C -- Cast Votes --> D(Voting Process);
+    D -- Decision --> E{Automated Decision Processing};
+    E -- Result --> F(Approved/Rejected);
+    F -- Sends Email to --> H[Applicant];
+    F -- Sends Email to --> I[Board Members];
+    F -- Stored in --> G[Application Archive];
+```
+
+## Localization
+
+The current user interface (GUI) of ProjectVote is primarily in German. We are keen to make the application accessible to a wider audience by supporting multiple languages.
+
+If you are interested in contributing to the internationalization of ProjectVote, either by providing language packs or helping to implement a robust multilingual system, please refer to our [CONTRIBUTING.md](CONTRIBUTING.md) for details on how to get involved. Your contributions would be highly valued!
+
+## Screenshots
+
+### Creating a new application
+![New application](/docs/images/readme_new_application.png)
+
+### Applications archive
+![Archive](/docs/images/readme_archive.png)
+
+
 ## Getting Started
+
+The recommended way to run ProjectVote is by using the pre-built Docker images from GitHub Container Registry.
 
 ### Prerequisites
 
-*   Docker
-*   Docker Compose
+- Docker
+- Docker Compose
 
 ### Running the Application
 
-1.  **Clone the repository:**
-    ```bash
-    git clone <repository-url>
-    cd ProjectVote
+1.  **Create a `docker-compose.yml` file** with the following content:
+
+    ```yaml
+    services:
+      backend:
+        image: ghcr.io/andreas-vester/projectvote-backend:latest
+        ports:
+          - "8008:8008"
+        volumes:
+          - ./data:/app/data
+        env_file:
+          - .env
+        restart: unless-stopped
+
+      frontend:
+        image: ghcr.io/andreas-vester/projectvote-frontend:latest
+        ports:
+          - "5173:80"
+        depends_on:
+          - backend
+        restart: unless-stopped
     ```
 
-2.  **Create environment files:**
-    *   Create a `.env` file in the project root by copying the `.env.example`. Update the `BOARD_MEMBERS` and other variables as needed.
-    *   Create a `.env` file in `src/projectvote/frontend` by copying the `src/projectvote/frontend/.env.example`.
+2.  **Create a `.env` file** in the same directory by copying the example below. This file stores sensitive configurations, suchs as board member emails and email server settings.
 
-3.  **Build and run with Docker Compose:**
+    > **Note:** You can also download the example file from the [repository](https://github.com/andreas-vester/ProjectVote/blob/main/.env.example).
+
+3.  **Run the application** using Docker Compose:
+
     ```bash
-    docker-compose up --build
+    docker compose up -d
     ```
 
 4.  **Access the application:**
-    *   **Frontend:** [http://localhost:5173](http://localhost:5173)
-    *   **Backend API:** [http://localhost:8008](http://localhost:8008)
+    - **Frontend:** [http://localhost:5173](http://localhost:5173)
+    - **Backend API:** [http://localhost:8008](http://localhost:8008)
+
+The application should now be running. Docker Compose will pull the latest images from the GitHub Container Registry.
+
+## For Developers & Contributing
+
+We welcome contributions to ProjectVote! If you're interested in fixing bugs, adding new features, or improving the documentation, please see our [CONTRIBUTING.md](CONTRIBUTING.md) file for details.
+
+## Configuration
+
+To provide a clearer picture of the setup, here are the contents of the main configuration files.
 
 
-The application should now be running. The first time you run the application, Docker Compose will build the images, which may take a few minutes.
+### Environment Variables (`.env`)
+
+```env
+# -----------------------------------------------------------------------------
+# Application URLs
+# -----------------------------------------------------------------------------
+# The public base URL of the frontend application.
+# Used for generating links in emails.
+FRONTEND_URL=http://your-production-domain.com
+
+# -----------------------------------------------------------------------------
+# Board Configuration
+# -----------------------------------------------------------------------------
+# Comma-separated list of board member email addresses
+BOARD_MEMBERS=board.member1@example.com,board.member2@example.com
+
+# -----------------------------------------------------------------------------
+# Database Configuration
+# -----------------------------------------------------------------------------
+# Set to False in production to prevent logging every SQL query.
+DB_ECHO=False
+
+# -----------------------------------------------------------------------------
+# Email Configuration (for fastapi-mail)
+# -----------------------------------------------------------------------------
+# Example for a real SMTP server (e.g., SendGrid, Mailgun)
+MAIL_DRIVER=smtp
+MAIL_SERVER=your-smtp-server.com
+MAIL_PORT=587
+MAIL_STARTTLS=True
+MAIL_SSL_TLS=False
+MAIL_USERNAME=your-smtp-username
+MAIL_PASSWORD=your-smtp-password
+MAIL_FROM=noreply@your-production-domain.com
+MAIL_FROM_NAME="ProjectVote"
+```
 
 ## Database
 
@@ -53,3 +152,7 @@ This ensures the database file (`applications.db`) is directly accessible on you
 ### Accessing the Database
 
 Since the database file is on your host machine at `data/applications.db`, you can open it using any standard SQLite database tool. There is no need to connect to the running container.
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
