@@ -249,34 +249,64 @@ async def _check_and_finalize_voting(
     board_members: list[str],
     settings: Settings,
 ) -> None:
-    """Check if all votes are cast and finalize the application status."""
+    """
+    Check if a definitive decision has been reached and finalize the application status.
+
+    A definitive decision is reached if the outcome is determined even if not all
+    board members have voted. This occurs when a simple majority for 'approve' or
+    'reject' is irreversible.
+    """
     application_result = await db.execute(
         select(Application)
         .where(Application.id == application_id)
         .options(selectinload(Application.votes)),
     )
-    application = application_result.scalar_one()
+    application = application_result.scalar_one_or_none()
+
+    if not application or application.status != ApplicationStatus.PENDING.value:
+        return
+
+    # Refresh the votes relationship to ensure the latest vote is loaded
+    await db.refresh(application, attribute_names=["votes"])
 
     cast_votes = [v for v in application.votes if v.vote_status == VoteStatus.CAST]
 
-    # If all board members have voted, determine the outcome.
-    if len(cast_votes) >= len(board_members):
-        # Exclude abstentions from the decision-making process
-        decisive_votes = [
-            v for v in cast_votes if v.vote in [VoteOption.APPROVE, VoteOption.REJECT]
-        ]
+    num_board_members = len(board_members)
 
-        # If there are no decisive votes (all abstained), reject the application.
-        if not decisive_votes:
-            application.status = ApplicationStatus.REJECTED.value
-        else:
-            approvals = sum(1 for v in decisive_votes if v.vote == VoteOption.APPROVE)
-            # Simple majority of non-abstaining votes
-            if approvals > len(decisive_votes) / 2:
-                application.status = ApplicationStatus.APPROVED.value
-            else:
-                application.status = ApplicationStatus.REJECTED.value
+    approvals = sum(1 for v in cast_votes if v.vote == VoteOption.APPROVE)
+    rejects = sum(1 for v in cast_votes if v.vote == VoteOption.REJECT)
+    abstains = sum(1 for v in cast_votes if v.vote == VoteOption.ABSTAIN)
 
+    remaining_votes = num_board_members - len(cast_votes)
+
+    # The number of votes that could possibly be decisive (not abstain)
+    possible_decisive_votes = num_board_members - abstains
+    # The majority needed from that number of possible decisive votes
+    majority_needed = (possible_decisive_votes // 2) + 1
+
+    new_status = None
+
+    # 1. Is approval guaranteed?
+    # If current approvals already meet the majority needed out of all possible
+    # decisive votes.
+    if approvals >= majority_needed:
+        new_status = ApplicationStatus.APPROVED
+
+    # 2. Is rejection guaranteed?
+    # If current rejects already meet the majority needed out of all possible
+    # decisive votes.
+    elif rejects >= majority_needed or approvals + remaining_votes < majority_needed:
+        new_status = ApplicationStatus.REJECTED
+
+    # 3. All votes are in, decide based on simple majority of decisive votes
+    elif remaining_votes == 0:
+        if approvals > rejects:
+            new_status = ApplicationStatus.APPROVED
+        else:  # Tie or more rejects
+            new_status = ApplicationStatus.REJECTED
+
+    if new_status:
+        application.status = new_status.value
         await db.commit()
         await send_final_decision_emails(application, board_members, settings)
 

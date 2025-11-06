@@ -22,8 +22,8 @@ Implement backend API endpoints to manage the token-based voting process for boa
 *   [x] Define the Pydantic model for the incoming vote data (e.g., `decision`).
 *   [x] Implement logic to validate the token and ensure the vote has not been cast previously.
 *   [x] Record the vote in the database, updating the `VoteRecord` status.
-*   [x] After a vote is cast, check if all votes for the associated application have been received.
-*   [x] If all votes are in, apply the decision logic: simple majority of non-abstaining votes (approve vs. reject). A tie among decisive votes or all abstentions results in rejection. Update the `Application` status accordingly.
+*   [x] After a vote is cast, check if a definitive decision has been reached. A definitive decision is reached if the outcome is determined, even if not all board members have voted.
+*   [x] This occurs when a simple majority for 'approve' or 'reject' is irreversible. For example, with a 7-member board, 4 'approve' votes will pass the application, and 4 'reject' votes will fail it, regardless of the remaining votes. A tie among decisive votes or all abstentions results in rejection. Update the `Application` status accordingly.
 *   [x] Handle appropriate success and error responses.
 
 ### Phase 3: Email Simulation Integration

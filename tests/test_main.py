@@ -1042,30 +1042,108 @@ async def test_vote_options_in_get_vote_details(
     assert VoteOption.REJECT.value in response_data["vote_options"]
 
 
+@pytest.mark.parametrize(
+    ("scenario", "votes_to_cast", "expected_status", "is_final"),
+    [
+        (
+            "Early Approve: 3/4 approve votes cast",
+            [VoteOption.APPROVE, VoteOption.APPROVE, VoteOption.APPROVE],
+            ApplicationStatus.APPROVED,
+            True,
+        ),
+        (
+            "Early Reject: 3/4 reject votes cast",
+            [VoteOption.REJECT, VoteOption.REJECT, VoteOption.REJECT],
+            ApplicationStatus.REJECTED,
+            True,
+        ),
+        (
+            "Early Reject: 2/4 reject votes cast makes approval impossible",
+            [VoteOption.REJECT, VoteOption.REJECT],
+            ApplicationStatus.REJECTED,
+            True,
+        ),
+        (
+            "Pending: 2/4 approve, 1/4 reject votes cast",
+            [VoteOption.APPROVE, VoteOption.APPROVE, VoteOption.REJECT],
+            ApplicationStatus.PENDING,
+            False,
+        ),
+        (
+            "Pending: 1/4 approve, 1/4 reject votes cast",
+            [VoteOption.APPROVE, VoteOption.REJECT],
+            ApplicationStatus.PENDING,
+            False,
+        ),
+        (
+            "Pending: 1/4 approve, 1/4 abstain votes cast",
+            [VoteOption.APPROVE, VoteOption.ABSTAIN],
+            ApplicationStatus.PENDING,
+            False,
+        ),
+        (
+            "Pending: 1/4 reject vote cast",
+            [VoteOption.REJECT],
+            ApplicationStatus.PENDING,
+            False,
+        ),
+        (
+            "Early Approve: 2/4 approve, 1/4 abstain",
+            [VoteOption.APPROVE, VoteOption.APPROVE, VoteOption.ABSTAIN],
+            ApplicationStatus.APPROVED,
+            True,
+        ),
+        (
+            "Pending: 1/4 approve, 2/4 abstain",
+            [VoteOption.APPROVE, VoteOption.ABSTAIN, VoteOption.ABSTAIN],
+            ApplicationStatus.PENDING,
+            False,
+        ),
+        (
+            "Early Reject: 1 reject, 2 abstain",
+            [VoteOption.REJECT, VoteOption.ABSTAIN, VoteOption.ABSTAIN],
+            ApplicationStatus.REJECTED,
+            True,
+        ),
+        (
+            "Pending: 3 abstain",
+            [VoteOption.ABSTAIN, VoteOption.ABSTAIN, VoteOption.ABSTAIN],
+            ApplicationStatus.PENDING,
+            False,
+        ),
+    ],
+)
 @pytest.mark.asyncio
-async def test_partial_voting_does_not_finalize(
-    client: AsyncClient, session: AsyncSession, mocker: MockerFixture
+async def test_early_voting_conclusion(
+    *,
+    client: AsyncClient,
+    session: AsyncSession,
+    mocker: MockerFixture,
+    scenario: str,
+    votes_to_cast: list[VoteOption],
+    expected_status: ApplicationStatus,
+    is_final: bool,
 ) -> None:
-    """Test that application status doesn't change until all votes are cast."""
+    """Test early voting conclusion with different partial vote combinations."""
     send_email_mock = mocker.patch(
         "projectvote.backend.main.send_email", new_callable=mocker.AsyncMock
     )
-
+    # Create an application and vote records via the API
     app_data = {
-        "first_name": "Partial",
-        "last_name": "Vote",
-        "applicant_email": "partial.vote@example.com",
-        "department": "Testing",
-        "project_title": "Partial Voting Test",
-        "project_description": "Test that partial votes don't finalize.",
-        "costs": 250.00,
+        "first_name": "Early",
+        "last_name": "Conclusion",
+        "applicant_email": "early.conclusion@example.com",
+        "department": "Scenarios",
+        "project_title": f"Test for {scenario}",
+        "project_description": "A test for a specific early voting scenario.",
+        "costs": 500.00,
     }
     create_response = await client.post("/applications", data=app_data)
     app_id = create_response.json()["application_id"]
 
     send_email_mock.reset_mock()
 
-    # Get all vote records
+    # Get all vote records for this application
     result = await session.execute(
         select(VoteRecord)
         .where(VoteRecord.application_id == app_id)
@@ -1074,20 +1152,22 @@ async def test_partial_voting_does_not_finalize(
     vote_records = result.scalars().all()
     assert len(vote_records) == len(TEST_BOARD_MEMBERS)
 
-    # Cast only 3 out of 4 votes
-    for i in range(3):
+    # Cast votes according to the scenario
+    for i, vote_decision in enumerate(votes_to_cast):
         await client.post(
-            f"/vote/{vote_records[i].token}",
-            json={"decision": VoteOption.APPROVE.value},
+            f"/vote/{vote_records[i].token}", json={"decision": vote_decision.value}
         )
 
-    # Verify application is still pending
+    # Verify the application status
     updated_app = await session.get(Application, app_id)
     assert updated_app is not None
     actual_status = getattr(updated_app, "status", None)
     if actual_status is not None and hasattr(actual_status, "value"):
         actual_status = actual_status.value
-    assert actual_status == ApplicationStatus.PENDING.value
+    assert actual_status == expected_status.value
 
-    # Verify that NO final decision emails were sent yet
-    assert send_email_mock.call_count == 0
+    # Verify that final decision emails were sent only if the decision is final
+    if is_final:
+        assert send_email_mock.call_count == EMAILS_SENT_FOR_FINAL_DECISION
+    else:
+        assert send_email_mock.call_count == 0

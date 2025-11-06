@@ -25,8 +25,8 @@ This document outlines the core functional requirements for the web application 
 
 *   **Purpose:** Automatically determine the application status based on board votes.
 *   **Features:**
-    *   The application status is automatically updated once all board members have cast their votes.
-    *   Decision logic: Simple majority rules. In case of a tie, the application is rejected.
+    *   The application status is automatically updated as soon as a definitive decision has been reached, even if not all board members have voted.
+    *   Decision logic: A simple majority of cast votes determines the outcome. The voting closes as soon as an irreversible majority is reached. In case of a tie, the application is rejected.
     *   Email notifications are sent to the applicant and all board members once a final decision is reached.
 
 ## 4. Application Archive
