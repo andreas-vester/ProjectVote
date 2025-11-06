@@ -43,6 +43,17 @@ If you are interested in contributing to the internationalization of ProjectVote
 ![Archive](/docs/images/readme_archive.png)
 
 
+## Automated Decision Processing
+
+The system automatically determines the application's status as soon as a definitive decision can be reached, even if not all board members have cast their votes. This "finish early" mechanism is based on a dynamic majority threshold that adjusts with the number of abstentions.
+
+The decision logic operates as follows:
+*   **Approval:** An application is approved if the number of 'approve' votes meets or exceeds the dynamic majority threshold. Additionally, an application is approved if the current 'approve' votes are greater than the sum of 'reject' votes and all remaining uncast votes, making rejection mathematically impossible.
+*   **Rejection:** An application is rejected if the number of 'reject' votes meets or exceeds the dynamic majority threshold. It is also rejected if it's impossible for 'approve' votes to reach the dynamic majority threshold, or if the 'reject' votes are greater than or equal to the sum of 'approve' votes and all remaining uncast votes, making approval mathematically impossible.
+*   **Tie-breaking:** In cases where all votes have been cast and there's a tie between 'approve' and 'reject' votes, the application is rejected. If all cast votes are abstentions, the application is also rejected.
+
+Once a final decision (approved or rejected) is reached, email notifications are automatically sent to the applicant and all board members.
+
 ## Getting Started
 
 The recommended way to run ProjectVote is by using the pre-built Docker images from GitHub Container Registry.
