@@ -10,7 +10,7 @@ jobs:
   backend:
     runs-on: ubuntu-latest
     env:
-      BOARD_MEMBERS: "test.member1@example.com,test.member2@example.com"
+      BOARD_MEMBERS: "test.member1@example.com,test.member2@example.com,test.member3@example.com"
     steps:
     - uses: actions/checkout@v4
     - name: Set up uv
