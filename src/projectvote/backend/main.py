@@ -293,23 +293,12 @@ async def _check_and_finalize_voting(
     new_status = None
 
     # 1. Is approval guaranteed?
-    # If current approvals already meet the majority needed out of all possible
-    # decisive votes.
     if approvals >= majority_needed:
         new_status = ApplicationStatus.APPROVED
 
     # 2. Is rejection guaranteed?
-    # If current rejects already meet the majority needed out of all possible
-    # decisive votes.
     elif rejects >= majority_needed or approvals + remaining_votes < majority_needed:
         new_status = ApplicationStatus.REJECTED
-
-    # 3. All votes are in, decide based on simple majority of decisive votes
-    elif remaining_votes == 0:
-        if approvals > rejects:
-            new_status = ApplicationStatus.APPROVED
-        else:  # Tie or more rejects
-            new_status = ApplicationStatus.REJECTED
 
     if new_status:
         application.status = new_status.value
