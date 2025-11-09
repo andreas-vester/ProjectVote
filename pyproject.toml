@@ -1,6 +1,6 @@
 [project]
 name = "projectvote"
-version = "0.1.0"
+version = "0.2.0"
 description = "Containerized application designed to simplify the entire funding application lifecycle."
 readme = "README.md"
 keywords = ["funding", "application", "management", "voting", "workflow", "fastapi", "python", "docker"]
