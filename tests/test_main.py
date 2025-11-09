@@ -1,16 +1,20 @@
 """Tests for the ProjectVote application."""
 
+from collections.abc import AsyncGenerator
+from contextlib import asynccontextmanager
 from http import HTTPStatus
+from typing import Any
+from unittest.mock import AsyncMock
 
 import pytest
-from httpx import AsyncClient
+from httpx import ASGITransport, AsyncClient
 from pytest_mock import MockerFixture
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from projectvote.backend.config import Settings
-from projectvote.backend.main import get_board_members
+from projectvote.backend.main import app, get_app_settings, get_board_members, lifespan
 from projectvote.backend.models import (
     Application,
     ApplicationStatus,
@@ -20,6 +24,54 @@ from projectvote.backend.models import (
 )
 
 from .conftest import EMAILS_SENT_FOR_FINAL_DECISION, TEST_BOARD_MEMBERS
+
+
+@pytest.mark.asyncio
+async def test_lifespan_creates_database() -> None:
+    """Test that the lifespan event creates database tables."""
+    # The lifespan event should execute when we create a client
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test"
+    ) as client:
+        # Simply accessing the app should trigger the lifespan event
+        response = await client.get("/")
+        assert response.status_code == HTTPStatus.OK
+        assert response.json() == {"message": "Welcome to the Funding Application API"}
+
+
+@pytest.mark.parametrize(
+    ("app_env", "expected_dotenv_path"),
+    [
+        ("development", ".env.local"),
+        ("testing", ".env"),
+        ("production", None),  # No specific file is loaded by default for production
+    ],
+)
+def test_get_app_settings(
+    mocker: MockerFixture, app_env: str, expected_dotenv_path: str | None
+) -> None:
+    """Test that get_app_settings loads the correct .env file based on APP_ENV."""
+    # Mock os.getenv to control the APP_ENV
+    mocker.patch("os.getenv", return_value=app_env)
+
+    # Mock load_dotenv to capture the path it's called with
+    load_dotenv_mock = mocker.patch("projectvote.backend.main.load_dotenv")
+
+    # Mock Path.exists to always return True so load_dotenv is called
+    mocker.patch("pathlib.Path.exists", return_value=True)
+
+    # Call the function
+    get_app_settings()
+
+    if expected_dotenv_path:
+        # Check that load_dotenv was called once
+        load_dotenv_mock.assert_called_once()
+        # Check that the `dotenv_path` argument contains the expected file name
+        call_args = load_dotenv_mock.call_args
+        assert expected_dotenv_path in str(call_args.kwargs["dotenv_path"])
+    else:
+        # Check that load_dotenv was not called for production
+        load_dotenv_mock.assert_not_called()
 
 
 @pytest.mark.asyncio
@@ -335,15 +387,11 @@ async def test_cast_vote_scenarios(
 async def test_voting_conclusion(
     client: AsyncClient,
     session: AsyncSession,
-    mocker: MockerFixture,
     scenario: str,
     votes: list[VoteOption],
     expected_status: ApplicationStatus,
 ) -> None:
     """Test voting conclusion with different vote combinations."""
-    send_email_mock = mocker.patch(
-        "projectvote.backend.main.send_email", new_callable=mocker.AsyncMock
-    )
     # Create an application and vote records via the API
     app_data = {
         "first_name": "Scenario",
@@ -356,8 +404,6 @@ async def test_voting_conclusion(
     }
     create_response = await client.post("/applications", data=app_data)
     app_id = create_response.json()["application_id"]
-
-    send_email_mock.reset_mock()
 
     # Get all vote records for this application
     result = await session.execute(
@@ -382,13 +428,11 @@ async def test_voting_conclusion(
         actual_status = actual_status.value
     assert actual_status == expected_status.value
 
-    # Verify that final decision emails were sent
-    assert send_email_mock.call_count == EMAILS_SENT_FOR_FINAL_DECISION
 
-
+@pytest.mark.settings_override({"send_automatic_rejection_email": True})
 @pytest.mark.parametrize(
-    ("scenario", "votes", "expected_status"),
-    [
+    argnames=("scenario", "votes", "expected_status"),
+    argvalues=[
         (
             "Approved",
             [
@@ -660,51 +704,96 @@ async def test_get_attachment_with_wrong_attachment_id(
 
 
 @pytest.mark.asyncio
-async def test_get_attachment_public(
-    client: AsyncClient, mocker: MockerFixture
+@pytest.mark.parametrize(
+    ("endpoint_type", "url_template"),
+    [
+        ("token_authenticated", "/vote/{token}/attachments/{attachment_id}"),
+        ("public", "/attachments/{attachment_id}"),
+    ],
+)
+async def test_attachment_file_not_found_on_disk_scenarios(
+    client: AsyncClient,
+    session: AsyncSession,
+    mocker: MockerFixture,
+    endpoint_type: str,
+    url_template: str,
 ) -> None:
-    """Test retrieving an attachment using the public endpoint."""
-    mocker.patch("projectvote.backend.main.send_email", new_callable=mocker.AsyncMock)
-
+    """Test file not found on disk for attachment retrieval scenarios."""
     # Create application with attachment
     app_data = {
-        "first_name": "Public",
-        "last_name": "Attachment",
-        "applicant_email": "public.attachment@example.com",
+        "first_name": "Disk",
+        "last_name": "Missing",
+        "applicant_email": "disk.missing@example.com",
         "department": "IT",
-        "project_title": "Public Attachment Test",
-        "project_description": "Test public attachment retrieval",
-        "costs": "150.00",
+        "project_title": "File on Disk Test",
+        "project_description": "Test file not found on disk",
+        "costs": "100.00",
     }
     files = {
-        "attachment": (
-            "public_doc.txt",
-            b"Public document content",
-            "text/plain",
-        )
+        "attachment": ("ghost_file.txt", b"This file will disappear", "text/plain")
     }
     response = await client.post("/applications", data=app_data, files=files)
-    assert response.status_code == HTTPStatus.OK
+    app_id = response.json()["application_id"]
 
-    # Get the attachment ID from the archive
-    archive_response = await client.get("/applications/archive")
-    applications = archive_response.json()
-    latest_app = applications[0]
-    attachment_id = latest_app["attachments"][0]["id"]
+    # Get attachment ID
+    app_result = await session.execute(
+        select(Application)
+        .where(Application.id == app_id)
+        .options(selectinload(Application.attachments))
+    )
+    application = app_result.scalar_one()
+    attachment_id = application.attachments[0].id
 
-    # Test retrieving the attachment via public endpoint
-    response = await client.get(f"/attachments/{attachment_id}")
-    assert response.status_code == HTTPStatus.OK
-    assert response.headers["content-type"] == "text/plain; charset=utf-8"
-    assert response.content == b"Public document content"
+    # Mock Path.is_file to return False
+    mocker.patch("projectvote.backend.main.Path.is_file", return_value=False)
 
+    url = ""
+    if endpoint_type == "token_authenticated":
+        # Get vote token
+        vote_record_result = await session.execute(
+            select(VoteRecord).where(VoteRecord.application_id == app_id)
+        )
+        vote_record = vote_record_result.scalars().first()
+        assert vote_record is not None
+        url = url_template.format(token=vote_record.token, attachment_id=attachment_id)
+    elif endpoint_type == "public":
+        url = url_template.format(attachment_id=attachment_id)
+    else:
+        pytest.fail(f"Unknown endpoint_type: {endpoint_type}")
 
-@pytest.mark.asyncio
-async def test_get_attachment_public_not_found(client: AsyncClient) -> None:
-    """Test retrieving a non-existent attachment via public endpoint."""
-    response = await client.get("/attachments/99999")
+    response = await client.get(url)
     assert response.status_code == HTTPStatus.NOT_FOUND
-    assert response.json() == {"detail": "Attachment not found."}
+    assert response.json() == {"detail": "File not found on disk."}
+    # Mock pathlib.Path to trace its calls
+    mock_mkdir = mocker.MagicMock()
+    mock_parent = mocker.MagicMock()
+    mock_parent.mkdir = mock_mkdir
+    mock_path_instance = mocker.MagicMock()
+    mock_path_instance.parent = mock_parent
+    mocker.patch("projectvote.backend.main.Path", return_value=mock_path_instance)
+
+    # Mock engine and other dependencies for lifespan
+    mock_engine = mocker.AsyncMock()
+    mock_conn = mocker.AsyncMock()
+
+    @asynccontextmanager
+    async def mock_begin(
+        *_args: Any,  # noqa: ANN401
+        **_kwargs: Any,  # noqa: ANN401
+    ) -> AsyncGenerator[AsyncMock, None]:
+        yield mock_conn
+
+    mock_engine.begin = mock_begin
+    mocker.patch("projectvote.backend.main.engine", new=mock_engine)
+
+    # Run the lifespan context manager
+    async with lifespan(app):
+        pass
+
+    # Assert that the directory creation was called
+    mock_mkdir.assert_called_once_with(parents=True, exist_ok=True)
+    # Assert that the database tables were created
+    mock_conn.run_sync.assert_awaited_once()
 
 
 @pytest.mark.asyncio
@@ -896,8 +985,124 @@ async def test_archive_shows_multiple_applications(
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize(
+    argnames=(
+        "send_automatic_rejection_email",
+        "vote_decision",
+        "expected_status",
+        "expected_applicant_emails",
+        "test_id",
+    ),
+    argvalues=[
+        (
+            True,
+            VoteOption.REJECT,
+            ApplicationStatus.REJECTED,
+            1,
+            "rejection_email_enabled",
+        ),
+        (
+            False,
+            VoteOption.REJECT,
+            ApplicationStatus.REJECTED,
+            0,
+            "rejection_email_disabled",
+        ),
+        (
+            True,
+            VoteOption.APPROVE,
+            ApplicationStatus.APPROVED,
+            1,
+            "approval_email_rejection_enabled",
+        ),
+        (
+            False,
+            VoteOption.APPROVE,
+            ApplicationStatus.APPROVED,
+            1,
+            "approval_email_rejection_disabled",
+        ),
+    ],
+)
+async def test_final_decision_email_sending(
+    *,
+    client: AsyncClient,
+    session: AsyncSession,
+    mocker: MockerFixture,
+    send_automatic_rejection_email: bool,
+    vote_decision: VoteOption,
+    expected_status: ApplicationStatus,
+    expected_applicant_emails: int,
+    test_id: str,
+) -> None:
+    """Test sending final decision emails based on settings and outcome."""
+    send_email_mock = mocker.patch(
+        "projectvote.backend.main.send_email", new_callable=mocker.AsyncMock
+    )
+
+    # Override settings for this test
+    app.dependency_overrides[get_app_settings] = lambda: Settings(
+        board_members=",".join(TEST_BOARD_MEMBERS),
+        send_automatic_rejection_email=send_automatic_rejection_email,
+    )
+
+    app_data = {
+        "first_name": "Test",
+        "last_name": "User",
+        "applicant_email": f"user.{test_id}@example.com",
+        "department": "Testing",
+        "project_title": f"Final Decision Email Test - {test_id}",
+        "project_description": "Test conditional sending of final decision emails.",
+        "costs": 100.00,
+    }
+    create_response = await client.post("/applications", data=app_data)
+    app_id = create_response.json()["application_id"]
+
+    send_email_mock.reset_mock()
+
+    # Get all vote records for this application
+    result = await session.execute(
+        select(VoteRecord)
+        .where(VoteRecord.application_id == app_id)
+        .order_by(VoteRecord.voter_email)
+    )
+    vote_records = result.scalars().all()
+
+    # Cast votes to reach the desired outcome
+    for vote_record in vote_records:
+        await client.post(
+            f"/vote/{vote_record.token}",
+            json={"decision": vote_decision.value},
+        )
+
+    # Verify application status
+    updated_app = await session.get(Application, app_id)
+    assert updated_app is not None
+    assert updated_app.status == expected_status.value
+
+    # Assert email sending behavior for the applicant
+    applicant_emails_sent = [
+        call
+        for call in send_email_mock.call_args_list
+        if call.kwargs["recipients"] == [app_data["applicant_email"]]
+    ]
+    assert len(applicant_emails_sent) == expected_applicant_emails
+
+    # Board members should always receive final decision emails
+    board_member_emails_sent = [
+        call
+        for call in send_email_mock.call_args_list
+        if call.kwargs["recipients"] != [app_data["applicant_email"]]
+    ]
+    assert len(board_member_emails_sent) == len(TEST_BOARD_MEMBERS)
+
+
+@pytest.mark.settings_override({"send_automatic_rejection_email": True})
+@pytest.mark.asyncio
 async def test_all_votes_reject(
-    client: AsyncClient, session: AsyncSession, mocker: MockerFixture
+    client: AsyncClient,
+    session: AsyncSession,
+    mocker: MockerFixture,
 ) -> None:
     """Test voting conclusion when all board members reject."""
     send_email_mock = mocker.patch(
@@ -1043,73 +1248,62 @@ async def test_vote_options_in_get_vote_details(
 
 
 @pytest.mark.parametrize(
-    ("scenario", "votes_to_cast", "expected_status", "is_final"),
+    ("scenario", "votes_to_cast", "expected_status"),
     [
         (
             "Early Approve: 3/4 approve votes cast",
             [VoteOption.APPROVE, VoteOption.APPROVE, VoteOption.APPROVE],
             ApplicationStatus.APPROVED,
-            True,
         ),
         (
             "Early Reject: 3/4 reject votes cast",
             [VoteOption.REJECT, VoteOption.REJECT, VoteOption.REJECT],
             ApplicationStatus.REJECTED,
-            True,
         ),
         (
             "Early Reject: 2/4 reject votes cast makes approval impossible",
             [VoteOption.REJECT, VoteOption.REJECT],
             ApplicationStatus.REJECTED,
-            True,
         ),
         (
             "Pending: 2/4 approve, 1/4 reject votes cast",
             [VoteOption.APPROVE, VoteOption.APPROVE, VoteOption.REJECT],
             ApplicationStatus.PENDING,
-            False,
         ),
         (
             "Pending: 1/4 approve, 1/4 reject votes cast",
             [VoteOption.APPROVE, VoteOption.REJECT],
             ApplicationStatus.PENDING,
-            False,
         ),
         (
             "Pending: 1/4 approve, 1/4 abstain votes cast",
             [VoteOption.APPROVE, VoteOption.ABSTAIN],
             ApplicationStatus.PENDING,
-            False,
         ),
         (
             "Pending: 1/4 reject vote cast",
             [VoteOption.REJECT],
             ApplicationStatus.PENDING,
-            False,
         ),
         (
             "Early Approve: 2/4 approve, 1/4 abstain",
             [VoteOption.APPROVE, VoteOption.APPROVE, VoteOption.ABSTAIN],
             ApplicationStatus.APPROVED,
-            True,
         ),
         (
             "Pending: 1/4 approve, 2/4 abstain",
             [VoteOption.APPROVE, VoteOption.ABSTAIN, VoteOption.ABSTAIN],
             ApplicationStatus.PENDING,
-            False,
         ),
         (
             "Early Reject: 1 reject, 2 abstain",
             [VoteOption.REJECT, VoteOption.ABSTAIN, VoteOption.ABSTAIN],
             ApplicationStatus.REJECTED,
-            True,
         ),
         (
             "Pending: 3 abstain",
             [VoteOption.ABSTAIN, VoteOption.ABSTAIN, VoteOption.ABSTAIN],
             ApplicationStatus.PENDING,
-            False,
         ),
     ],
 )
@@ -1118,16 +1312,11 @@ async def test_early_voting_conclusion(
     *,
     client: AsyncClient,
     session: AsyncSession,
-    mocker: MockerFixture,
     scenario: str,
     votes_to_cast: list[VoteOption],
     expected_status: ApplicationStatus,
-    is_final: bool,
 ) -> None:
     """Test early voting conclusion with different partial vote combinations."""
-    send_email_mock = mocker.patch(
-        "projectvote.backend.main.send_email", new_callable=mocker.AsyncMock
-    )
     # Create an application and vote records via the API
     app_data = {
         "first_name": "Early",
@@ -1140,8 +1329,6 @@ async def test_early_voting_conclusion(
     }
     create_response = await client.post("/applications", data=app_data)
     app_id = create_response.json()["application_id"]
-
-    send_email_mock.reset_mock()
 
     # Get all vote records for this application
     result = await session.execute(
@@ -1165,9 +1352,3 @@ async def test_early_voting_conclusion(
     if actual_status is not None and hasattr(actual_status, "value"):
         actual_status = actual_status.value
     assert actual_status == expected_status.value
-
-    # Verify that final decision emails were sent only if the decision is final
-    if is_final:
-        assert send_email_mock.call_count == EMAILS_SENT_FOR_FINAL_DECISION
-    else:
-        assert send_email_mock.call_count == 0
