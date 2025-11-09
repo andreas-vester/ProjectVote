@@ -215,19 +215,25 @@ async def send_final_decision_emails(
     # Get the German translation, defaulting to the original status if not found
     german_status = status_translations.get(status_str, status_str.upper())
 
-    # Notification to Applicant
-    await send_email(
-        recipients=[application.applicant_email],  # type: ignore[arg-type]
-        subject=f"Entscheidung über Ihren Antrag: {application.project_title}",
-        template_body={
-            "first_name": application.first_name,
-            "last_name": application.last_name,
-            "project_title": application.project_title,
-            "status": german_status,
-        },
-        template_name="final_decision_applicant.html",
-        settings=settings,
-    )
+    if (
+        application.status == ApplicationStatus.REJECTED
+        and not settings.send_automatic_rejection_email
+    ):
+        # If automatic rejection emails are disabled, skip sending to applicant
+        pass  # pragma: no cover
+    else:
+        await send_email(
+            recipients=[application.applicant_email],  # type: ignore[arg-type]
+            subject=f"Entscheidung über Ihren Antrag: {application.project_title}",
+            template_body={
+                "first_name": application.first_name,
+                "last_name": application.last_name,
+                "project_title": application.project_title,
+                "status": german_status,
+            },
+            template_name="final_decision_applicant.html",
+            settings=settings,
+        )
 
     # Notification to Board Members
     for member_email in board_members:

@@ -2,6 +2,7 @@
 
 from collections.abc import AsyncGenerator, Generator
 from pathlib import Path
+from typing import Any
 
 import pytest
 import pytest_asyncio
@@ -9,8 +10,9 @@ from httpx import ASGITransport, AsyncClient
 from pytest_mock import MockerFixture
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
+from projectvote.backend.config import Settings
 from projectvote.backend.database import get_db
-from projectvote.backend.main import app, get_board_members
+from projectvote.backend.main import app, get_app_settings, get_board_members
 from projectvote.backend.models import Base
 
 # Define a separate set of board members for testing
@@ -53,9 +55,13 @@ async def session_fixture() -> AsyncGenerator[AsyncSession, None]:
 
 @pytest_asyncio.fixture(name="client")
 async def client_fixture(
-    session: AsyncSession, mocker: MockerFixture
+    request: pytest.FixtureRequest, session: AsyncSession, mocker: MockerFixture
 ) -> AsyncGenerator[AsyncClient, None]:
     """Yield an AsyncClient for testing the FastAPI app with mocked dependencies."""
+    settings_override = None
+    marker = request.node.get_closest_marker("settings_override")
+    if marker:
+        settings_override = marker.args[0]
 
     async def get_test_db() -> AsyncGenerator[AsyncSession, None]:
         yield session
@@ -63,10 +69,17 @@ async def client_fixture(
     def get_test_board_members() -> list[str]:
         return TEST_BOARD_MEMBERS
 
+    def get_overridden_settings() -> Settings:
+        settings_data: dict[str, Any] = {"board_members": ",".join(TEST_BOARD_MEMBERS)}
+        if settings_override:
+            settings_data.update(settings_override)
+        return Settings(**settings_data)
+
     mocker.patch("projectvote.backend.main.send_email", new_callable=mocker.AsyncMock)
 
     app.dependency_overrides[get_db] = get_test_db
     app.dependency_overrides[get_board_members] = get_test_board_members
+    app.dependency_overrides[get_app_settings] = get_overridden_settings
 
     async with AsyncClient(
         transport=ASGITransport(app=app), base_url="http://test"

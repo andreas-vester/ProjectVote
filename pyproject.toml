@@ -59,3 +59,5 @@ testpaths = [
     "tests",
 ]
 doctest_optionflags = "NORMALIZE_WHITESPACE IGNORE_EXCEPTION_DETAIL NUMBER"
+asyncio_mode = "auto"
+markers = ["settings_override: override application settings for a test"]

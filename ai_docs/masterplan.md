@@ -28,6 +28,7 @@ This document outlines the high-level development phases for ProjectVote. Each s
 ### 4.1 Email Service Configuration
 ### 4.2 New Application Notification
 ### 4.3 Final Decision Notification
+### 4.4 Configurable Rejection Emails
 
 ## 5. Integration & End-to-End Testing
 ### 5.1 Backend-Frontend Integration

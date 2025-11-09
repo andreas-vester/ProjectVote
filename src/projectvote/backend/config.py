@@ -34,6 +34,7 @@ class Settings(BaseSettings):
     # Application settings
     frontend_url: str = "http://localhost:5173"
     backend_url: str = "http://localhost:8008"
+    send_automatic_rejection_email: bool = True
 
     # Database settings
     db_echo: bool = True
