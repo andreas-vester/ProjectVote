@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.2.0] - 2025-11-09
+
 ### Added
 
 - Implement early voting conclusion ([GH#1](https://github.com/andreas-vester/ProjectVote/issues/1)).
@@ -22,5 +24,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Historical record of all funding applications and their outcomes.
 - German localization for the user interface.
 
-[Unreleased]: git@github.com:andreas-vester/ProjectVote/compare/0.1.0...master
+[Unreleased]: git@github.com:andreas-vester/ProjectVote/compare/0.2.0...master
+[0.2.0]: git@github.com:andreas-vester/ProjectVote/compare/0.1.0...0.2.0
 [0.1.0]: git@github.com:andreas-vester/ProjectVote/tree/0.1.0
