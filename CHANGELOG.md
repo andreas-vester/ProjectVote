@@ -6,6 +6,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.3.0] - 2025-11-12
+
+### Added
+
+- Applicant receives confirmation email upon application submission ([GH#7](https://github.com/andreas-vester/ProjectVote/issues/7)).
+- Email content enriched, now contains all details regarding an application ([GH#8](https://github.com/andreas-vester/ProjectVote/issues/8) and ([GH#9](https://github.com/andreas-vester/ProjectVote/issues/9))).
+
 ## [0.2.0] - 2025-11-09
 
 ### Added
@@ -24,6 +31,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Historical record of all funding applications and their outcomes.
 - German localization for the user interface.
 
-[Unreleased]: git@github.com:andreas-vester/ProjectVote/compare/0.2.0...master
+[Unreleased]: git@github.com:andreas-vester/ProjectVote/compare/0.3.0...master
+[0.3.0]: git@github.com:andreas-vester/ProjectVote/compare/0.2.0...0.3.0
 [0.2.0]: git@github.com:andreas-vester/ProjectVote/compare/0.1.0...0.2.0
 [0.1.0]: git@github.com:andreas-vester/ProjectVote/tree/0.1.0
