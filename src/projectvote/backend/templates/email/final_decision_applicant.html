@@ -2,9 +2,22 @@
 <html>
 <body>
     <p>Hallo {{ first_name }},</p>
-    <p>Es wurde eine Entscheidung über Deinen Antrag "{{ project_title }}" getroffen.</p>
-    <p>Das Projekt wurde {{ status }}.</p>
-    <p>Viele Grüße.</p>
-    <p>ProjectVote</p>
+    <p>vielen Dank für deine Geduld. Es wurde eine Entscheidung über deinen Förderantrag getroffen.</p>
+    <h3><strong>Der Antrag wurde {{ status }}.</strong></h3>
+
+    <h3>Zusammenfassung des Antrags</h3>
+    <ul>
+        <li><strong>Projekttitel:</strong> {{ project_title }}</li>
+        <li><strong>Name des Antragstellers:</strong> {{ first_name }} {{ last_name }}</li>
+        <li><strong>E-Mail des Antragstellers:</strong> {{ applicant_email }}</li>
+        <li><strong>Abteilung/Fachschaft:</strong> {{ department }}</li>
+        <li><strong>Geschätzte Kosten:</strong> €{{ "%.2f"|format(costs) }}</li>
+        <li><strong>Projektbeschreibung:</strong><br>{{ project_description }}</li>
+    </ul>
+
+    <p>Du kannst den Status aller Anträge jederzeit im <a href="{{ frontend_url }}/archive">Antragsarchiv</a> einsehen.</p>
+    <p>Wir danken dir für deine Einreichung.</p>
+    <p>Viele Grüße</p>
+    <p>LvD Förderverein</p>
 </body>
 </html>

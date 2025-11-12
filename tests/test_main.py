@@ -136,7 +136,7 @@ async def test_create_application(
     assert applicant_email_call is not None
     assert (
         applicant_email_call.kwargs["subject"]
-        == f"Bestätigung Ihres Antrags: {application_data['project_title']}"
+        == f"Bestätigung Deines Antrags: {application_data['project_title']}"
     )
     assert (
         applicant_email_call.kwargs["template_name"] == "application_confirmation.html"
@@ -162,6 +162,12 @@ async def test_create_application(
     board_template_body = first_board_call_args.kwargs["template_body"]
     assert board_template_body["first_name"] == application_data["first_name"]
     assert board_template_body["last_name"] == application_data["last_name"]
+    assert board_template_body["applicant_email"] == application_data["applicant_email"]
+    assert board_template_body["department"] == application_data["department"]
+    assert (
+        board_template_body["project_description"]
+        == application_data["project_description"]
+    )
     assert board_template_body["project_title"] == application_data["project_title"]
     assert board_template_body["costs"] == application_data["costs"]
     assert "vote_url" in board_template_body
@@ -545,26 +551,24 @@ async def test_final_decision_email_content(
     )
     assert (
         applicant_email_call.kwargs["subject"]
-        == f"Entscheidung über Ihren Antrag: {app_data['project_title']}"
+        == f"Entscheidung über Deinen Antrag: {app_data['project_title']}"
     )
     assert (
         applicant_email_call.kwargs["template_name"] == "final_decision_applicant.html"
     )
+    applicant_template_body = applicant_email_call.kwargs["template_body"]
+    assert applicant_template_body["first_name"] == app_data["first_name"]
+    assert applicant_template_body["last_name"] == app_data["last_name"]
+    assert applicant_template_body["applicant_email"] == app_data["applicant_email"]
+    assert applicant_template_body["department"] == app_data["department"]
+    assert applicant_template_body["project_title"] == app_data["project_title"]
     assert (
-        applicant_email_call.kwargs["template_body"]["first_name"]
-        == app_data["first_name"]
+        applicant_template_body["project_description"]
+        == app_data["project_description"]
     )
-    assert (
-        applicant_email_call.kwargs["template_body"]["last_name"]
-        == app_data["last_name"]
-    )
-    assert (
-        applicant_email_call.kwargs["template_body"]["project_title"]
-        == app_data["project_title"]
-    )
-    assert (
-        applicant_email_call.kwargs["template_body"]["status"] == expected_german_status
-    )
+    assert applicant_template_body["costs"] == app_data["costs"]
+    assert applicant_template_body["status"] == expected_german_status
+    assert "frontend_url" in applicant_template_body
 
     # Check board member emails
     board_member_email_calls = [
@@ -579,10 +583,19 @@ async def test_final_decision_email_content(
             == f"Abstimmung abgeschlossen für: {app_data['project_title']}"
         )
         assert call.kwargs["template_name"] == "final_decision_board.html"
+        board_template_body = call.kwargs["template_body"]
+        assert board_template_body["first_name"] == app_data["first_name"]
+        assert board_template_body["last_name"] == app_data["last_name"]
+        assert board_template_body["applicant_email"] == app_data["applicant_email"]
+        assert board_template_body["department"] == app_data["department"]
+        assert board_template_body["project_title"] == app_data["project_title"]
         assert (
-            call.kwargs["template_body"]["project_title"] == app_data["project_title"]
+            board_template_body["project_description"]
+            == app_data["project_description"]
         )
-        assert call.kwargs["template_body"]["status"] == expected_german_status
+        assert board_template_body["costs"] == app_data["costs"]
+        assert board_template_body["status"] == expected_german_status
+        assert "frontend_url" in board_template_body
 
 
 @pytest.mark.asyncio

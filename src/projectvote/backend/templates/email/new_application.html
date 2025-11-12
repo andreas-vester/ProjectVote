@@ -2,8 +2,18 @@
 <html>
 <body>
     <p>Hallo,</p>
-    <p>Ein neuer Förderantrag wurde von {{ first_name }} {{ last_name }} für das Projekt "{{ project_title }}" eingereicht.</p>
-    <p>Die geschätzten Kosten belaufen sich auf: {{ costs }}€.</p>
+    <p>Ein neuer Förderantrag wurde eingereicht und wartet auf Deine Stimme.</p>
+
+    <h3>Zusammenfassung des Antrags</h3>
+    <ul>
+        <li><strong>Projekttitel:</strong> {{ project_title }}</li>
+        <li><strong>Name des Antragstellers:</strong> {{ first_name }} {{ last_name }}</li>
+        <li><strong>E-Mail des Antragstellers:</strong> {{ applicant_email }}</li>
+        <li><strong>Abteilung/Fachschaft:</strong> {{ department }}</li>
+        <li><strong>Geschätzte Kosten:</strong> €{{ "%.2f"|format(costs) }}</li>
+        <li><strong>Projektbeschreibung:</strong><br>{{ project_description }}</li>
+    </ul>
+
     {% if attachments %}
     <p><strong>Anhänge:</strong></p>
     <ul>
@@ -12,6 +22,9 @@
     {% endfor %}
     </ul>
     {% endif %}
-    <p>Bitte geben Sie hier Ihre Stimme ab: <a href="{{ vote_url }}">Link zur Abstimmung</a></p>
+
+    <p>Bitte gib hier Deine Stimme ab: <a href="{{ vote_url }}">Link zur Abstimmung</a></p>
+    <p>Viele Grüße</p>
+    <p>Project-Vote</p>
 </body>
 </html>

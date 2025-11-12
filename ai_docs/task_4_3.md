@@ -17,15 +17,30 @@ Automate the sending of final decision emails to both the applicant and all boar
 ### Phase 2: Applicant Email Template
 *   [x] Design an email template for the applicant.
 *   [x] The template should:
-    *   Clearly state the final decision (approved or rejected).
-    *   Include the project title.
-    *   Thank the applicant for their submission.
+    *   [x] Clearly state the final decision (approved or rejected).
+    *   [x] It should contain:
+        *   [x] Applicant's Full Name
+        *   [x] Applicant's Email
+        *   [x] Department
+        *   [x] Project Title
+        *   [x] Project Description
+        *   [x] Estimated Costs
+        *   [x] A link to the archive of the web app.
+        *   [x] Thank the applicant for their submission.
 
 ### Phase 3: Board Member Email Template
 *   [x] Design an email template for the board members.
 *   [x] The template should:
-    *   Announce that voting is complete for a specific application.
-    *   State the final outcome.
+    *   [x] Announce that voting is complete for a specific application.
+    *   [x] State the final outcome.
+    *   [x] It should contain:
+        *   [x] Applicant's Full Name
+        *   [x] Applicant's Email
+        *   [x] Department
+        *   [x] Project Title
+        *   [x] Project Description
+        *   [x] Estimated Costs
+        *   [x] A link to the archive of the web app.
 
 ### Phase 4: Verification
 *   [x] Use a local email testing tool to verify that both the applicant and all board members receive the correct notification.
