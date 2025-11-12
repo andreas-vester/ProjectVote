@@ -158,7 +158,7 @@ async def send_confirmation_email(application: Application, settings: Settings) 
     """Send a confirmation email to the applicant."""
     await send_email(
         recipients=[application.applicant_email],  # type: ignore[list-item]
-        subject=f"Bestätigung Ihres Antrags: {application.project_title}",
+        subject=f"Bestätigung Deines Antrags: {application.project_title}",
         template_body={
             "first_name": application.first_name,
             "last_name": application.last_name,
@@ -199,7 +199,10 @@ async def send_voting_links(
             template_body={
                 "first_name": application.first_name,
                 "last_name": application.last_name,
+                "applicant_email": application.applicant_email,
+                "department": application.department,
                 "project_title": application.project_title,
+                "project_description": application.project_description,
                 "costs": application.costs,
                 "vote_url": vote_url,
                 "token": vote_record.token,
@@ -238,35 +241,38 @@ async def send_final_decision_emails(
     # Get the German translation, defaulting to the original status if not found
     german_status = status_translations.get(status_str, status_str.upper())
 
-    if (
+    # Prepare a common template body for both emails
+    template_body = {
+        "first_name": application.first_name,
+        "last_name": application.last_name,
+        "applicant_email": application.applicant_email,
+        "department": application.department,
+        "project_title": application.project_title,
+        "project_description": application.project_description,
+        "costs": application.costs,
+        "status": german_status,
+        "frontend_url": settings.frontend_url,
+    }
+
+    # --- Email to Applicant ---
+    if not (
         application.status == ApplicationStatus.REJECTED
         and not settings.send_automatic_rejection_email
     ):
-        # If automatic rejection emails are disabled, skip sending to applicant
-        pass  # pragma: no cover
-    else:
         await send_email(
             recipients=[application.applicant_email],  # type: ignore[arg-type]
-            subject=f"Entscheidung über Ihren Antrag: {application.project_title}",
-            template_body={
-                "first_name": application.first_name,
-                "last_name": application.last_name,
-                "project_title": application.project_title,
-                "status": german_status,
-            },
+            subject=f"Entscheidung über Deinen Antrag: {application.project_title}",
+            template_body=template_body,
             template_name="final_decision_applicant.html",
             settings=settings,
         )
 
-    # Notification to Board Members
+    # --- Email to Board Members ---
     for member_email in board_members:
         await send_email(
             recipients=[member_email],
             subject=f"Abstimmung abgeschlossen für: {application.project_title}",
-            template_body={
-                "project_title": application.project_title,
-                "status": german_status,
-            },
+            template_body=template_body,
             template_name="final_decision_board.html",
             settings=settings,
         )

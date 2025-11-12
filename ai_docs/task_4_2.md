@@ -13,9 +13,12 @@ Integrate the email service to automatically send notifications to all board mem
 ### Phase 1: Email Template
 *   [x] Design a clear and informative email template.
 *   [x] The template should include:
-    *   The project title.
-    *   The applicant's name.
-    *   The estimated costs.
+    *   Applicant's Full Name
+    *   Applicant's Email
+    *   Department
+    *   Project Title
+    *   Project Description
+    *   Estimated Costs
     *   A direct, unique link to the voting page (e.g., `http://localhost:5173/vote/{token}`).
 *   [x] Consider using a simple HTML template for better formatting.
 

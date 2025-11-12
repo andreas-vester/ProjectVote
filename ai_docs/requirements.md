@@ -16,7 +16,7 @@ This document outlines the core functional requirements for the web application 
 *   **Purpose:** Enable board members to securely review and vote on submitted applications.
 *   **Features:**
     *   Upon application submission, unique, secure voting links are generated for each board member.
-    *   Board members receive email notifications with their individual voting links.
+    *   Board members receive email notifications with their individual voting links. The email also contains all relevant information about the application.
     *   Access to application details via the unique voting link.
     *   Ability to cast a vote (approve, reject, or abstain) through a dedicated form.
     *   Prevention of multiple votes from the same token.
@@ -29,6 +29,7 @@ This document outlines the core functional requirements for the web application 
     *   The application status is automatically updated as soon as a definitive decision has been reached, even if not all board members have voted.
     *   Decision logic: A simple majority of cast votes determines the outcome. The voting closes as soon as an irreversible majority is reached. In case of a tie, the application is rejected.
     *   Email notifications are sent to all board members once a final decision is reached.
+    *   The email contains all relevant information about the application.
     *   An email notification is sent to the applicant. For rejected applications, this can be disabled via a configuration setting to allow for a personalized response.
 
 ## 4. Application Archive
