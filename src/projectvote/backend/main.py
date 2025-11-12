@@ -154,6 +154,29 @@ class ApplicationOut(BaseModel):
 # --- Email Sending Functions ---
 
 
+async def send_confirmation_email(application: Application, settings: Settings) -> None:
+    """Send a confirmation email to the applicant."""
+    await send_email(
+        recipients=[application.applicant_email],  # type: ignore[list-item]
+        subject=f"Bestätigung Ihres Antrags: {application.project_title}",
+        template_body={
+            "first_name": application.first_name,
+            "last_name": application.last_name,
+            "applicant_email": application.applicant_email,
+            "department": application.department,
+            "project_title": application.project_title,
+            "project_description": application.project_description,
+            "costs": application.costs,
+            "attachment_filename": application.attachments[0].filename
+            if application.attachments
+            else None,
+            "frontend_url": settings.frontend_url,
+        },
+        template_name="application_confirmation.html",
+        settings=settings,
+    )
+
+
 async def send_voting_links(
     application: Application,
     db: AsyncSession,
@@ -372,6 +395,9 @@ async def submit_application(
 
     # Refresh the application with attachments relationship loaded
     await db.refresh(new_application, attribute_names=["attachments"])
+
+    # Send confirmation email to the applicant
+    await send_confirmation_email(new_application, settings)
 
     # Generate vote records and send links
     await send_voting_links(new_application, db, board_members, settings)

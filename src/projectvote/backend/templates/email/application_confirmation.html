@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<body>
+    <p>Hallo {{ first_name }} {{ last_name }},</p>
+    <p>Vielen Dank für Ihren Förderantrag. Wir haben ihn erfolgreich erhalten.</p>
+    <p>Diese E-Mail dient als Bestätigung Ihrer Einreichung. Nachfolgend finden Sie eine Zusammenfassung Ihrer übermittelten Details:</p>
+
+    <h3>Zusammenfassung des Antrags</h3>
+    <ul>
+        <li><strong>Projekttitel:</strong> {{ project_title }}</li>
+        <li><strong>Name des Antragstellers:</strong> {{ first_name }} {{ last_name }}</li>
+        <li><strong>E-Mail des Antragstellers:</strong> {{ applicant_email }}</li>
+        <li><strong>Abteilung/Fachschaft:</strong> {{ department }}</li>
+        <li><strong>Geschätzte Kosten:</strong> €{{ costs }}</li>
+        <li><strong>Projektbeschreibung:</strong><br>{{ project_description }}</li>
+    </ul>
+
+    {% if attachment_filename %}
+    <p><strong>Anhang:</strong> Ihre Datei '{{ attachment_filename }}' wurde erfolgreich hochgeladen.</p>
+    {% endif %}
+
+    <p>Wir werden Ihren Antrag prüfen und uns nach Abschluss des Abstimmungsprozesses bei Ihnen melden.</p>
+    <p>Sie können den Status aller Anträge im <a href="{{ frontend_url }}/archive">Antragsarchiv</a> einsehen.</p>
+    <p>Mit freundlichen Grüßen,</p>
+    <p>LvD Förderverein</p>
+</body>
+</html>

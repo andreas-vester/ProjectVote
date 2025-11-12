@@ -9,6 +9,7 @@ This document outlines the core functional requirements for the web application 
     *   A user-friendly form for entering project details (title, description, costs, department).
     *   Collection of applicant's contact information (name, email).
     *   Optional file upload for supporting documents (PDF, XLSX, DOCX, etc.).
+    *   Upon successful submission, the applicant receives a confirmation email containing all the details of their submission.
 
 ## 2. Token-Based Board Voting
 
