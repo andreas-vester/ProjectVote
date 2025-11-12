@@ -120,17 +120,51 @@ async def test_create_application(
             actual_status = actual_status.value
         assert actual_status == VoteStatus.PENDING.value
 
-    # Verify that email sending was triggered
-    assert send_email_mock.call_count == len(TEST_BOARD_MEMBERS)
+    # Verify that email sending was triggered for board members and the applicant
+    assert send_email_mock.call_count == len(TEST_BOARD_MEMBERS) + 1
 
-    # Verify that the email body contains the correct data
-    first_call_args = send_email_mock.call_args_list[0]
-    template_body = first_call_args.kwargs["template_body"]
-    assert template_body["first_name"] == application_data["first_name"]
-    assert template_body["last_name"] == application_data["last_name"]
-    assert template_body["project_title"] == application_data["project_title"]
-    assert template_body["costs"] == application_data["costs"]
-    assert "vote_url" in template_body
+    # Separate the calls for applicant and board members
+    applicant_email_call = None
+    board_member_email_calls = []
+    for call in send_email_mock.call_args_list:
+        if call.kwargs["recipients"] == [application_data["applicant_email"]]:
+            applicant_email_call = call
+        else:
+            board_member_email_calls.append(call)
+
+    # Verify the confirmation email to the applicant
+    assert applicant_email_call is not None
+    assert (
+        applicant_email_call.kwargs["subject"]
+        == f"Bestätigung Ihres Antrags: {application_data['project_title']}"
+    )
+    assert (
+        applicant_email_call.kwargs["template_name"] == "application_confirmation.html"
+    )
+    applicant_template_body = applicant_email_call.kwargs["template_body"]
+    assert applicant_template_body["first_name"] == application_data["first_name"]
+    assert applicant_template_body["last_name"] == application_data["last_name"]
+    assert (
+        applicant_template_body["applicant_email"]
+        == application_data["applicant_email"]
+    )
+    assert applicant_template_body["department"] == application_data["department"]
+    assert applicant_template_body["project_title"] == application_data["project_title"]
+    assert (
+        applicant_template_body["project_description"]
+        == application_data["project_description"]
+    )
+    assert applicant_template_body["costs"] == application_data["costs"]
+
+    # Verify the notification emails to board members
+    assert len(board_member_email_calls) == len(TEST_BOARD_MEMBERS)
+    first_board_call_args = board_member_email_calls[0]
+    board_template_body = first_board_call_args.kwargs["template_body"]
+    assert board_template_body["first_name"] == application_data["first_name"]
+    assert board_template_body["last_name"] == application_data["last_name"]
+    assert board_template_body["project_title"] == application_data["project_title"]
+    assert board_template_body["costs"] == application_data["costs"]
+    assert "vote_url" in board_template_body
 
 
 @pytest.mark.parametrize(
