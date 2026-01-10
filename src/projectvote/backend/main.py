@@ -16,6 +16,7 @@ from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
+from sqlalchemy.sql import func
 
 from .config import Settings
 from .database import DATABASE_URL, engine, get_db
@@ -331,6 +332,7 @@ async def _check_and_finalize_voting(
 
     if new_status:
         application.status = new_status.value
+        application.concluded_at = func.now()
         await db.commit()
         await send_final_decision_emails(application, board_members, settings)
 
@@ -473,6 +475,7 @@ async def cast_vote(
     # Update vote record
     vote_record.vote = vote_data.decision.value  # type: ignore[attr-defined]
     vote_record.vote_status = VoteStatus.CAST.value  # type: ignore[attr-defined]
+    vote_record.voted_at = func.now()
     await db.commit()
 
     # After a vote is cast, check if the voting process is complete.

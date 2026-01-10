@@ -105,6 +105,12 @@ async def test_create_application(
     assert response_data["message"] == "Application submitted successfully"
     assert "application_id" in response_data
 
+    # Verify that the application was created with a timestamp
+    app_id = response_data["application_id"]
+    created_app = await session.get(Application, app_id)
+    assert created_app is not None
+    assert created_app.created_at is not None
+
     # Verify vote records were created by the API endpoint
     result = await session.execute(
         select(VoteRecord).where(
@@ -354,6 +360,7 @@ async def test_cast_vote_scenarios(
         if actual_vote_status is not None and hasattr(actual_vote_status, "value"):
             actual_vote_status = actual_vote_status.value
         assert actual_vote_status == VoteStatus.CAST.value
+        assert vote_record.voted_at is not None
     else:
         assert response.json() == {"detail": expected_message}
 
@@ -467,6 +474,12 @@ async def test_voting_conclusion(
     if actual_status is not None and hasattr(actual_status, "value"):
         actual_status = actual_status.value
     assert actual_status == expected_status.value
+
+    # Verify the concluded_at timestamp
+    if expected_status == ApplicationStatus.PENDING:
+        assert updated_app.concluded_at is None
+    else:
+        assert updated_app.concluded_at is not None
 
 
 @pytest.mark.settings_override({"send_automatic_rejection_email": True})
@@ -1399,3 +1412,9 @@ async def test_early_voting_conclusion(
     if actual_status is not None and hasattr(actual_status, "value"):
         actual_status = actual_status.value
     assert actual_status == expected_status.value
+
+    # Verify the concluded_at timestamp
+    if expected_status == ApplicationStatus.PENDING:
+        assert updated_app.concluded_at is None
+    else:
+        assert updated_app.concluded_at is not None

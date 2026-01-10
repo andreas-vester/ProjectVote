@@ -17,18 +17,21 @@ Design and implement the initial database schema to support the core entities of
     *   Applicant details (e.g., first name, last name, email)
     *   Project details (e.g., title, description, costs, department)
     *   Application status (e.g., pending, approved, rejected)
+    *   Timestamps: `created_at` (for submission time), `concluded_at` (for final decision time)
 *   [x] Define essential attributes for the `VoteRecord` entity, including:
     *   Associated application
     *   Voter identification (e.g., email)
     *   Unique voting token
     *   Vote decision (e.g., approve, reject)
     *   Vote status (e.g., pending, cast)
+    *   Timestamp: `voted_at` (for when the vote was cast)
 *   [x] Establish the one-to-many relationship: one `Application` can have multiple `VoteRecord`s.
 
 ### Phase 2: ORM Model Implementation
 *   [x] Choose an appropriate ORM (e.g., SQLAlchemy) for Python backend.
 *   [x] Create Python classes (models) representing the `Application` and `VoteRecord` entities, mapping their attributes to database columns.
 *   [x] Define primary keys, foreign keys, data types, and constraints for all columns.
+*   [x] Add timestamp fields (`created_at`, `concluded_at` for `Application`, `voted_at` for `VoteRecord`) to the ORM models.
 *   [x] Implement the relationship between the `Application` and `VoteRecord` models within the ORM.
 
 ### Phase 3: Database Initialization

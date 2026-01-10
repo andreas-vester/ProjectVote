@@ -5,6 +5,7 @@ import uuid
 
 from sqlalchemy import (
     Column,
+    DateTime,
     Float,
     ForeignKey,
     Integer,
@@ -14,6 +15,7 @@ from sqlalchemy import (
     Enum as PyEnum,
 )
 from sqlalchemy.orm import declarative_base, relationship
+from sqlalchemy.sql import func
 
 Base = declarative_base()
 
@@ -57,6 +59,8 @@ class Application(Base):
     status = Column(
         PyEnum(ApplicationStatus), default=ApplicationStatus.PENDING, nullable=False
     )
+    created_at = Column(DateTime, nullable=False, server_default=func.now())
+    concluded_at = Column(DateTime, nullable=True)
 
     votes = relationship("VoteRecord", back_populates="application")
     attachments = relationship("Attachment", back_populates="application")
@@ -80,6 +84,7 @@ class VoteRecord(Base):
     )
     vote = Column(PyEnum(VoteOption), nullable=True)
     vote_status = Column(PyEnum(VoteStatus), default=VoteStatus.PENDING, nullable=False)
+    voted_at = Column(DateTime, nullable=True)
 
     application = relationship("Application", back_populates="votes")
 
