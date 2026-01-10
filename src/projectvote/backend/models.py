@@ -1,20 +1,19 @@
 """SQLAlchemy models for the application."""
 
+import datetime as dt
 import enum
 import uuid
 
-from sqlalchemy import (
-    Column,
-    DateTime,
-    Float,
-    ForeignKey,
-    Integer,
-    String,
-)
+from sqlalchemy import DateTime, Float, ForeignKey, Integer, String
 from sqlalchemy import (
     Enum as PyEnum,
 )
-from sqlalchemy.orm import declarative_base, relationship
+from sqlalchemy.orm import (
+    Mapped,
+    declarative_base,
+    mapped_column,
+    relationship,
+)
 from sqlalchemy.sql import func
 
 Base = declarative_base()
@@ -48,22 +47,24 @@ class Application(Base):
 
     __tablename__ = "applications"
 
-    id = Column(Integer, primary_key=True, index=True)
-    first_name = Column(String, nullable=False)
-    last_name = Column(String, nullable=False)
-    applicant_email = Column(String, nullable=False)
-    department = Column(String, nullable=False)
-    project_title = Column(String, nullable=False)
-    project_description = Column(String, nullable=False)
-    costs = Column(Float, nullable=False)
-    status = Column(
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    first_name: Mapped[str] = mapped_column(String, nullable=False)
+    last_name: Mapped[str] = mapped_column(String, nullable=False)
+    applicant_email: Mapped[str] = mapped_column(String, nullable=False)
+    department: Mapped[str] = mapped_column(String, nullable=False)
+    project_title: Mapped[str] = mapped_column(String, nullable=False)
+    project_description: Mapped[str] = mapped_column(String, nullable=False)
+    costs: Mapped[float] = mapped_column(Float, nullable=False)
+    status: Mapped[ApplicationStatus] = mapped_column(
         PyEnum(ApplicationStatus), default=ApplicationStatus.PENDING, nullable=False
     )
-    created_at = Column(DateTime, nullable=False, server_default=func.now())
-    concluded_at = Column(DateTime, nullable=True)
+    created_at: Mapped[dt.datetime] = mapped_column(
+        DateTime, nullable=False, server_default=func.now()
+    )
+    concluded_at: Mapped[dt.datetime | None] = mapped_column(DateTime, nullable=True)
 
-    votes = relationship("VoteRecord", back_populates="application")
-    attachments = relationship("Attachment", back_populates="application")
+    votes: Mapped[list["VoteRecord"]] = relationship(back_populates="application")
+    attachments: Mapped[list["Attachment"]] = relationship(back_populates="application")
 
 
 def generate_uuid() -> str:
@@ -76,17 +77,21 @@ class VoteRecord(Base):
 
     __tablename__ = "votes"
 
-    id = Column(Integer, primary_key=True, index=True)
-    application_id = Column(Integer, ForeignKey("applications.id"), nullable=False)
-    voter_email = Column(String, nullable=False)
-    token = Column(
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    application_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("applications.id"), nullable=False
+    )
+    voter_email: Mapped[str] = mapped_column(String, nullable=False)
+    token: Mapped[str] = mapped_column(
         String, unique=True, index=True, nullable=False, default=generate_uuid
     )
-    vote = Column(PyEnum(VoteOption), nullable=True)
-    vote_status = Column(PyEnum(VoteStatus), default=VoteStatus.PENDING, nullable=False)
-    voted_at = Column(DateTime, nullable=True)
+    vote: Mapped[VoteOption | None] = mapped_column(PyEnum(VoteOption), nullable=True)
+    vote_status: Mapped[VoteStatus] = mapped_column(
+        PyEnum(VoteStatus), default=VoteStatus.PENDING, nullable=False
+    )
+    voted_at: Mapped[dt.datetime | None] = mapped_column(DateTime, nullable=True)
 
-    application = relationship("Application", back_populates="votes")
+    application: Mapped["Application"] = relationship(back_populates="votes")
 
 
 class Attachment(Base):
@@ -94,10 +99,12 @@ class Attachment(Base):
 
     __tablename__ = "attachments"
 
-    id = Column(Integer, primary_key=True, index=True)
-    application_id = Column(Integer, ForeignKey("applications.id"), nullable=False)
-    filename = Column(String, nullable=False)
-    filepath = Column(String, nullable=False, unique=True)
-    mime_type = Column(String, nullable=False)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    application_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("applications.id"), nullable=False
+    )
+    filename: Mapped[str] = mapped_column(String, nullable=False)
+    filepath: Mapped[str] = mapped_column(String, nullable=False, unique=True)
+    mime_type: Mapped[str] = mapped_column(String, nullable=False)
 
-    application = relationship("Application", back_populates="attachments")
+    application: Mapped["Application"] = relationship(back_populates="attachments")

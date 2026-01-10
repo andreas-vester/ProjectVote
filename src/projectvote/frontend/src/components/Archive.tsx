@@ -24,7 +24,20 @@ import {
 import { AttachFile } from '@mui/icons-material';
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
-import { getApplicationsArchive, type ApplicationOut, ApplicationStatus, VoteOption, getPublicAttachmentUrl } from '../apiService';
+import { getApplicationsArchive, getPublicAttachmentUrl, type ApplicationOut, ApplicationStatus, VoteOption } from '../apiService';
+
+// Helper function to format timestamps
+const formatTimestamp = (timestamp: string | Date | undefined): string => {
+  if (!timestamp) return 'N/A';
+  const date = new Date(timestamp);
+  return date.toLocaleString('de-DE', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+};
 
 const applicationStatusTranslations: Record<ApplicationStatus, string> = {
   [ApplicationStatus.PENDING]: 'Ausstehend',
@@ -61,9 +74,11 @@ const Row: React.FC<{ application: ApplicationOut }> = ({ application }) => {
         <TableCell>{application.department}</TableCell>
         <TableCell>{`€${application.costs.toFixed(2)}`}</TableCell>
         <TableCell>{applicationStatusTranslations[application.status] || application.status}</TableCell>
+        <TableCell>{formatTimestamp(application.created_at)}</TableCell>
+        <TableCell>{application.concluded_at ? formatTimestamp(application.concluded_at) : 'N/A'}</TableCell>
       </TableRow>
       <TableRow>
-        <TableCell style={{ paddingBottom: 0, paddingTop: 0 }} colSpan={7}>
+        <TableCell style={{ paddingBottom: 0, paddingTop: 0 }} colSpan={9}>
           <Collapse in={open} timeout="auto" unmountOnExit>
             <Box sx={{ margin: 1 }}>
               <Typography variant="h6" gutterBottom component="div">
@@ -83,6 +98,7 @@ const Row: React.FC<{ application: ApplicationOut }> = ({ application }) => {
                   <TableRow>
                     <TableCell>Abstimmende Person</TableCell>
                     <TableCell>Entscheidung</TableCell>
+                    <TableCell>Abgestimmt am</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -90,6 +106,7 @@ const Row: React.FC<{ application: ApplicationOut }> = ({ application }) => {
                     <TableRow key={index}>
                       <TableCell>{vote.voter_email}</TableCell>
                       <TableCell>{vote.decision ? voteOptionTranslations[vote.decision] : 'N/A'}</TableCell>
+                      <TableCell>{vote.voted_at ? formatTimestamp(vote.voted_at) : 'N/A'}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -163,10 +180,17 @@ const Archive: React.FC = () => {
       app.project_title.toLowerCase().includes(filterText.toLowerCase())
     )
     .sort((a, b) => {
-      if (a[orderBy] < b[orderBy]) {
+      const aValue = a[orderBy];
+      const bValue = b[orderBy];
+
+      // Handle null or undefined values to avoid runtime errors
+      if (aValue == null) return 1;
+      if (bValue == null) return -1;
+
+      if (aValue < bValue) {
         return order === 'asc' ? -1 : 1;
       }
-      if (a[orderBy] > b[orderBy]) {
+      if (aValue > bValue) {
         return order === 'asc' ? 1 : -1;
       }
       return 0;
@@ -208,8 +232,8 @@ const Archive: React.FC = () => {
                     ID
                   </TableSortLabel>
                 </TableCell>
-                <TableCell sx={{ width: '20%' }}>Antragsteller</TableCell>
-                <TableCell sx={{ width: '30%' }} sortDirection={orderBy === 'project_title' ? order : false}>
+                <TableCell sx={{ width: '15%' }}>Antragsteller</TableCell>
+                <TableCell sx={{ width: '20%' }} sortDirection={orderBy === 'project_title' ? order : false}>
                   <TableSortLabel
                     active={orderBy === 'project_title'}
                     direction={orderBy === 'project_title' ? order : 'asc'}
@@ -218,7 +242,7 @@ const Archive: React.FC = () => {
                     Projekttitel
                   </TableSortLabel>
                 </TableCell>
-                <TableCell sx={{ width: '20%' }}>Abteilung/Fachschaft</TableCell>
+                <TableCell sx={{ width: '15%' }}>Abteilung/Fachschaft</TableCell>
                 <TableCell sx={{ width: '10%' }} sortDirection={orderBy === 'costs' ? order : false}>
                   <TableSortLabel
                     active={orderBy === 'costs'}
@@ -237,6 +261,8 @@ const Archive: React.FC = () => {
                     Status
                   </TableSortLabel>
                 </TableCell>
+                <TableCell sx={{ width: '10%' }}>Erstellt am</TableCell>
+                <TableCell sx={{ width: '10%' }}>Abgeschlossen am</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -246,7 +272,7 @@ const Archive: React.FC = () => {
                 ))
               ) : (
                 <TableRow>
-                  <TableCell colSpan={7} align="center">
+                  <TableCell colSpan={9} align="center">
                     No applications found.
                   </TableCell>
                 </TableRow>

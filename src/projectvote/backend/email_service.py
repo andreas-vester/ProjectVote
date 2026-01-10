@@ -27,7 +27,7 @@ def get_mailer(settings: Settings) -> FastMail:
 
     """
     # For local development with MailHog, we don't need credentials or cert validation
-    is_mailhog = settings.mail_server in ["localhost", "ds716.local"]
+    is_mailhog = settings.mail_server in ["localhost", "ds716.local", "10.10.2.11"]
 
     if (
         settings.mail_driver != "console"

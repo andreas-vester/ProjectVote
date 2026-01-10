@@ -1,5 +1,6 @@
 """FastAPI application for ProjectVote."""
 
+import datetime as dt
 import os
 import uuid
 from collections.abc import AsyncGenerator
@@ -95,6 +96,13 @@ def get_board_members(
     return [email.strip() for email in settings.board_members.split(",")]
 
 
+def format_datetime_for_email(timestamp: dt.datetime | None) -> str:
+    """Format a datetime object into a user-friendly string for emails."""
+    if not timestamp:
+        return "N/A"
+    return timestamp.strftime("%d.%m.%Y, %H:%M Uhr")
+
+
 # --- Pydantic Models for API data validation ---
 
 
@@ -123,6 +131,7 @@ class VoteOut(BaseModel):
 
     voter_email: str
     decision: VoteOption | None = Field(validation_alias="vote")
+    voted_at: dt.datetime | None
 
 
 class AttachmentOut(BaseModel):
@@ -148,6 +157,8 @@ class ApplicationOut(BaseModel):
     project_description: str
     costs: float
     status: ApplicationStatus
+    created_at: dt.datetime
+    concluded_at: dt.datetime | None
     votes: list[VoteOut]
     attachments: list[AttachmentOut] = []
 
@@ -168,6 +179,7 @@ async def send_confirmation_email(application: Application, settings: Settings) 
             "project_title": application.project_title,
             "project_description": application.project_description,
             "costs": application.costs,
+            "created_at": format_datetime_for_email(application.created_at),
             "attachment_filename": application.attachments[0].filename
             if application.attachments
             else None,
@@ -205,6 +217,7 @@ async def send_voting_links(
                 "project_title": application.project_title,
                 "project_description": application.project_description,
                 "costs": application.costs,
+                "created_at": format_datetime_for_email(application.created_at),
                 "vote_url": vote_url,
                 "token": vote_record.token,
                 "frontend_url": settings.frontend_url,
@@ -252,6 +265,8 @@ async def send_final_decision_emails(
         "project_description": application.project_description,
         "costs": application.costs,
         "status": german_status,
+        "created_at": format_datetime_for_email(application.created_at),
+        "concluded_at": format_datetime_for_email(application.concluded_at),
         "frontend_url": settings.frontend_url,
     }
 
@@ -334,6 +349,7 @@ async def _check_and_finalize_voting(
         application.status = new_status.value
         application.concluded_at = func.now()
         await db.commit()
+        await db.refresh(application)  # Refresh to load the concluded_at value
         await send_final_decision_emails(application, board_members, settings)
 
 

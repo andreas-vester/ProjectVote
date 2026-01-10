@@ -39,6 +39,7 @@ export interface VoteCreate {
 export interface VoteOut {
   voter_email: string;
   decision: VoteOption | null;
+  voted_at?: string;
 }
 
 export interface AttachmentOut {
@@ -56,6 +57,8 @@ export interface ApplicationOut {
   project_description: string;
   costs: number;
   status: ApplicationStatus;
+  created_at: string;
+  concluded_at?: string;
   votes: VoteOut[];
   attachments: AttachmentOut[];
 }
