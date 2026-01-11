@@ -1,6 +1,7 @@
 """Tests for the email service module."""
 
 import pytest
+from fastapi_mail import NameEmail
 from pydantic import SecretStr
 from pytest_mock import MockerFixture
 
@@ -28,7 +29,7 @@ async def test_send_email(mocker: MockerFixture) -> None:
     # Assert
     mock_send.assert_called_once()
     call_args = mock_send.call_args[0][0]
-    assert call_args.recipients == recipients
+    assert call_args.recipients == [NameEmail(name=r, email=r) for r in recipients]
     assert call_args.subject == subject
     assert call_args.template_body == template_body
     assert mock_send.call_args[1]["template_name"] == template_name

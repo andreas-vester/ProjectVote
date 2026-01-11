@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Added
+
+- Time stamps recording the time of application creation and conclusion.
+- Time stamps recording the exact time of individual voting casts.
+
 ## [0.3.0] - 2025-11-12
 
 ### Added

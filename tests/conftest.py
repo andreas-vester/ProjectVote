@@ -34,6 +34,19 @@ test_engine = create_async_engine(TEST_DB_URL, echo=False)
 TestSessionLocal = async_sessionmaker(bind=test_engine, expire_on_commit=False)
 
 
+@pytest.fixture(scope="session")
+def asyncio_backend_options() -> dict[str, bool]:
+    """Configure asyncio backend for pytest."""
+    return {"close_loop": True}
+
+
+@pytest_asyncio.fixture(scope="session", autouse=True)
+async def dispose_test_engine() -> AsyncGenerator[None, None]:
+    """Ensure the test database engine is properly disposed after the test session."""
+    yield
+    await test_engine.dispose()
+
+
 @pytest.fixture(scope="session", autouse=True)
 def cleanup_db_file_after_session() -> Generator[None, None, None]:
     """Ensure the test database file is removed after the test session."""
@@ -75,7 +88,9 @@ async def client_fixture(
             settings_data.update(settings_override)
         return Settings(**settings_data)
 
-    mocker.patch("projectvote.backend.main.send_email", new_callable=mocker.AsyncMock)
+    mocker.patch(
+        "projectvote.backend.email_service.send_email", new_callable=mocker.AsyncMock
+    )
 
     app.dependency_overrides[get_db] = get_test_db
     app.dependency_overrides[get_board_members] = get_test_board_members

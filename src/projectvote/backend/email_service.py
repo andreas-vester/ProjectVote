@@ -4,7 +4,13 @@ import logging
 from pathlib import Path
 from typing import Any
 
-from fastapi_mail import ConnectionConfig, FastMail, MessageSchema, MessageType
+from fastapi_mail import (
+    ConnectionConfig,
+    FastMail,
+    MessageSchema,
+    MessageType,
+    NameEmail,
+)
 from pydantic import EmailStr, SecretStr
 
 from .config import Settings
@@ -82,7 +88,7 @@ async def send_email(
     """
     message = MessageSchema(
         subject=subject,
-        recipients=recipients,
+        recipients=[NameEmail(name=r, email=r) for r in recipients],
         template_body=template_body,
         subtype=MessageType.html,
     )

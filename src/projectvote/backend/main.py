@@ -57,7 +57,7 @@ origins = [
     "http://127.0.0.1:5173",
 ]
 app.add_middleware(
-    CORSMiddleware,
+    CORSMiddleware,  # type: ignore[arg-type]
     allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],
@@ -169,7 +169,7 @@ class ApplicationOut(BaseModel):
 async def send_confirmation_email(application: Application, settings: Settings) -> None:
     """Send a confirmation email to the applicant."""
     await send_email(
-        recipients=[application.applicant_email],  # type: ignore[list-item]
+        recipients=[application.applicant_email],
         subject=f"Bestätigung Deines Antrags: {application.project_title}",
         template_body={
             "first_name": application.first_name,
@@ -276,7 +276,7 @@ async def send_final_decision_emails(
         and not settings.send_automatic_rejection_email
     ):
         await send_email(
-            recipients=[application.applicant_email],  # type: ignore[arg-type]
+            recipients=[application.applicant_email],
             subject=f"Entscheidung über Deinen Antrag: {application.project_title}",
             template_body=template_body,
             template_name="final_decision_applicant.html",
@@ -346,7 +346,7 @@ async def _check_and_finalize_voting(
         new_status = ApplicationStatus.REJECTED
 
     if new_status:
-        application.status = new_status.value
+        application.status = ApplicationStatus(new_status.value)
         application.concluded_at = func.now()
         await db.commit()
         await db.refresh(application)  # Refresh to load the concluded_at value
@@ -450,7 +450,7 @@ async def get_vote_details(
     if not vote_record:
         raise HTTPException(status_code=404, detail="Invalid or expired token.")
 
-    if vote_record.vote_status == VoteStatus.CAST.value:  # type: ignore[truthy-bool]
+    if vote_record.vote_status == VoteStatus.CAST.value:
         raise HTTPException(status_code=400, detail="This vote has already been cast.")
 
     app = vote_record.application
@@ -485,18 +485,18 @@ async def cast_vote(
     if not vote_record:
         raise HTTPException(status_code=404, detail="Invalid or expired token.")
 
-    if vote_record.vote_status == VoteStatus.CAST.value:  # type: ignore[truthy-bool]
+    if vote_record.vote_status == VoteStatus.CAST.value:
         raise HTTPException(status_code=400, detail="Vote has already been cast.")
 
     # Update vote record
-    vote_record.vote = vote_data.decision.value  # type: ignore[attr-defined]
+    vote_record.vote = vote_data.decision.value
     vote_record.vote_status = VoteStatus.CAST.value  # type: ignore[attr-defined]
     vote_record.voted_at = func.now()
     await db.commit()
 
     # After a vote is cast, check if the voting process is complete.
     await _check_and_finalize_voting(
-        int(vote_record.application_id),  # type: ignore[arg-type]
+        int(vote_record.application_id),
         db,
         board_members,
         settings,
