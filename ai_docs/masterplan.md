@@ -39,6 +39,7 @@ This document outlines the high-level development phases for ProjectVote. Each s
 ### 6.1 Unified Docker-based Deployment
 ### 6.2 Database Setup & Management
 ### 6.3 Continuous Integration (GitHub Actions)
+### 6.4 Database Migrations (Alembic)
 
 ## 7. Enhancements & Future Features
 ### 7.1 User Authentication & Authorization
