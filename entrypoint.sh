@@ -9,7 +9,19 @@
 #    regardless of the host user's UID/GID.
 chown -R appuser:appuser /app/data
 
-# 2. Execute the main command (CMD) passed to the container.
+# 2. Run database migrations before starting the application.
+#    This ensures the database schema is up-to-date with the current code.
+#    Migrations are run as root first (before dropping privileges) to ensure
+#    permissions are correct.
+echo "Running database migrations..."
+alembic -c alembic.ini upgrade head
+if [ $? -ne 0 ]; then
+    echo "Failed to run database migrations" >&2
+    exit 1
+fi
+echo "Database migrations completed successfully"
+
+# 3. Execute the main command (CMD) passed to the container.
 #    `gosu` is a lightweight tool for dropping privileges.
 #    This command runs the uvicorn server as the `appuser`.
 exec gosu appuser "$@"
