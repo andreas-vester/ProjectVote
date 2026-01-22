@@ -1,5 +1,6 @@
 """FastAPI application for ProjectVote."""
 
+import datetime as dt
 import os
 import uuid
 from collections.abc import AsyncGenerator
@@ -16,6 +17,7 @@ from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
+from sqlalchemy.sql import func
 
 from .config import Settings
 from .database import DATABASE_URL, engine, get_db
@@ -55,7 +57,7 @@ origins = [
     "http://127.0.0.1:5173",
 ]
 app.add_middleware(
-    CORSMiddleware,
+    CORSMiddleware,  # type: ignore[arg-type]
     allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],
@@ -94,6 +96,13 @@ def get_board_members(
     return [email.strip() for email in settings.board_members.split(",")]
 
 
+def format_datetime_for_email(timestamp: dt.datetime | None) -> str:
+    """Format a datetime object into a user-friendly string for emails."""
+    if not timestamp:
+        return "N/A"
+    return timestamp.strftime("%d.%m.%Y, %H:%M Uhr")
+
+
 # --- Pydantic Models for API data validation ---
 
 
@@ -122,6 +131,7 @@ class VoteOut(BaseModel):
 
     voter_email: str
     decision: VoteOption | None = Field(validation_alias="vote")
+    voted_at: dt.datetime | None
 
 
 class AttachmentOut(BaseModel):
@@ -147,6 +157,8 @@ class ApplicationOut(BaseModel):
     project_description: str
     costs: float
     status: ApplicationStatus
+    created_at: dt.datetime
+    concluded_at: dt.datetime | None
     votes: list[VoteOut]
     attachments: list[AttachmentOut] = []
 
@@ -157,7 +169,7 @@ class ApplicationOut(BaseModel):
 async def send_confirmation_email(application: Application, settings: Settings) -> None:
     """Send a confirmation email to the applicant."""
     await send_email(
-        recipients=[application.applicant_email],  # type: ignore[list-item]
+        recipients=[application.applicant_email],
         subject=f"Bestätigung Deines Antrags: {application.project_title}",
         template_body={
             "first_name": application.first_name,
@@ -167,6 +179,7 @@ async def send_confirmation_email(application: Application, settings: Settings) 
             "project_title": application.project_title,
             "project_description": application.project_description,
             "costs": application.costs,
+            "created_at": format_datetime_for_email(application.created_at),
             "attachment_filename": application.attachments[0].filename
             if application.attachments
             else None,
@@ -204,6 +217,7 @@ async def send_voting_links(
                 "project_title": application.project_title,
                 "project_description": application.project_description,
                 "costs": application.costs,
+                "created_at": format_datetime_for_email(application.created_at),
                 "vote_url": vote_url,
                 "token": vote_record.token,
                 "frontend_url": settings.frontend_url,
@@ -251,6 +265,8 @@ async def send_final_decision_emails(
         "project_description": application.project_description,
         "costs": application.costs,
         "status": german_status,
+        "created_at": format_datetime_for_email(application.created_at),
+        "concluded_at": format_datetime_for_email(application.concluded_at),
         "frontend_url": settings.frontend_url,
     }
 
@@ -260,7 +276,7 @@ async def send_final_decision_emails(
         and not settings.send_automatic_rejection_email
     ):
         await send_email(
-            recipients=[application.applicant_email],  # type: ignore[arg-type]
+            recipients=[application.applicant_email],
             subject=f"Entscheidung über Deinen Antrag: {application.project_title}",
             template_body=template_body,
             template_name="final_decision_applicant.html",
@@ -330,8 +346,10 @@ async def _check_and_finalize_voting(
         new_status = ApplicationStatus.REJECTED
 
     if new_status:
-        application.status = new_status.value
+        application.status = ApplicationStatus(new_status.value)
+        application.concluded_at = func.now()
         await db.commit()
+        await db.refresh(application)  # Refresh to load the concluded_at value
         await send_final_decision_emails(application, board_members, settings)
 
 
@@ -432,7 +450,7 @@ async def get_vote_details(
     if not vote_record:
         raise HTTPException(status_code=404, detail="Invalid or expired token.")
 
-    if vote_record.vote_status == VoteStatus.CAST.value:  # type: ignore[truthy-bool]
+    if vote_record.vote_status == VoteStatus.CAST.value:
         raise HTTPException(status_code=400, detail="This vote has already been cast.")
 
     app = vote_record.application
@@ -467,17 +485,18 @@ async def cast_vote(
     if not vote_record:
         raise HTTPException(status_code=404, detail="Invalid or expired token.")
 
-    if vote_record.vote_status == VoteStatus.CAST.value:  # type: ignore[truthy-bool]
+    if vote_record.vote_status == VoteStatus.CAST.value:
         raise HTTPException(status_code=400, detail="Vote has already been cast.")
 
     # Update vote record
-    vote_record.vote = vote_data.decision.value  # type: ignore[attr-defined]
+    vote_record.vote = vote_data.decision.value
     vote_record.vote_status = VoteStatus.CAST.value  # type: ignore[attr-defined]
+    vote_record.voted_at = func.now()
     await db.commit()
 
     # After a vote is cast, check if the voting process is complete.
     await _check_and_finalize_voting(
-        int(vote_record.application_id),  # type: ignore[arg-type]
+        int(vote_record.application_id),
         db,
         board_members,
         settings,

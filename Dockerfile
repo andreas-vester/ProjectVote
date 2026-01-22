@@ -37,6 +37,10 @@ COPY --from=builder /app/.venv /app/.venv
 # Copy the application source code
 COPY src/ ./src/
 
+# Copy alembic configuration and migration scripts
+COPY alembic/ ./alembic/
+COPY alembic.ini .
+
 # Add the virtual environment's executables to the PATH
 ENV PATH="/app/.venv/bin:$PATH"
 ENV PYTHONPATH=/app/src

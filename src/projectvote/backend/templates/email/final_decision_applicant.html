@@ -12,6 +12,8 @@
         <li><strong>E-Mail des Antragstellers:</strong> {{ applicant_email }}</li>
         <li><strong>Abteilung/Fachschaft:</strong> {{ department }}</li>
         <li><strong>Geschätzte Kosten:</strong> €{{ "%.2f"|format(costs) }}</li>
+        <li><strong>Eingereicht am:</strong> {{ created_at }}</li>
+        <li><strong>Abgeschlossen am:</strong> {{ concluded_at }}</li>
         <li><strong>Projektbeschreibung:</strong><br>{{ project_description }}</li>
     </ul>
 
