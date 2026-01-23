@@ -1,5 +1,7 @@
 """Configuration and shared fixtures for pytest."""
 
+import shutil
+import tempfile
 from collections.abc import AsyncGenerator, Generator
 from pathlib import Path
 from typing import Any
@@ -33,6 +35,23 @@ test_db_path.parent.mkdir(parents=True, exist_ok=True)
 
 test_engine = create_async_engine(TEST_DB_URL, echo=False)
 TestSessionLocal = async_sessionmaker(bind=test_engine, expire_on_commit=False)
+
+
+class _TempUploadsContainer:
+    """Container to hold the temporary uploads directory path."""
+
+    path: Path | None = None
+
+
+@pytest.fixture(scope="session", autouse=True)
+def temp_uploads_dir_session() -> Generator[Path, None, None]:
+    """Create a temporary directory for test uploads and clean up after session."""
+    temp_dir = Path(tempfile.mkdtemp(prefix="projectvote_test_uploads_"))
+    _TempUploadsContainer.path = temp_dir
+    yield temp_dir
+    # Clean up after all tests
+    if temp_dir.exists():
+        shutil.rmtree(temp_dir)
 
 
 @pytest_asyncio.fixture(scope="session", autouse=True)
@@ -80,16 +99,20 @@ async def client_fixture(
     def get_overridden_settings() -> Settings:
         settings_data: dict[str, Any] = {
             "board_members": ",".join(TEST_BOARD_MEMBERS),
-            "mail_driver": "console",
+            "mail_driver": "console",  # Use console driver - no actual email sending
             "mail_password": SecretStr("test-password"),
         }
         if settings_override:
             settings_data.update(settings_override)
-        return Settings(**settings_data)
+        settings = Settings(**settings_data)
+        # Override project_root to use temp directory for file uploads
+        if _TempUploadsContainer.path:
+            settings.project_root = _TempUploadsContainer.path
+        return settings
 
-    mocker.patch(
-        "projectvote.backend.email_service.send_email", new_callable=mocker.AsyncMock
-    )
+    # Mock the send_email function to prevent actual email sending
+    # Patch where it's USED (in main.py), not where it's defined
+    mocker.patch("projectvote.backend.main.send_email", new_callable=mocker.AsyncMock)
 
     app.dependency_overrides[get_db] = get_test_db
     app.dependency_overrides[get_board_members] = get_test_board_members
@@ -100,3 +123,16 @@ async def client_fixture(
     ) as client:
         yield client
     app.dependency_overrides.clear()
+
+
+@pytest.fixture(name="test_settings")
+def test_settings_fixture() -> Settings:
+    """Provide the test settings with temp directory override."""
+    settings = Settings(
+        board_members=",".join(TEST_BOARD_MEMBERS),
+        mail_driver="console",
+        mail_password=SecretStr("test-password"),
+    )
+    if _TempUploadsContainer.path:
+        settings.project_root = _TempUploadsContainer.path
+    return settings
