@@ -6,12 +6,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Added
+
+- ``send_automatic_confirmation_email`` setting ([GH#16](https://github.com/andreas-vester/ProjectVote/issues/16)).
+
 ## [0.4.0] - 2026-01-23
 
 ### Added
 
-- Time stamps recording the time of application creation and conclusion.
-- Time stamps recording the exact time of individual voting casts.
+- Time stamps recording the time of application creation and conclusion and time of individual voting casts ([GH#12](https://github.com/andreas-vester/ProjectVote/issues/12)).
 
 ### Changed
 
