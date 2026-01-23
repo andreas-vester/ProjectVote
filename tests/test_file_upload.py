@@ -2,19 +2,19 @@
 
 import io
 from http import HTTPStatus
-from pathlib import Path
 
 import pytest
 from httpx import AsyncClient
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from projectvote.backend.config import Settings
 from projectvote.backend.models import Application, Attachment, VoteRecord
 
 
 @pytest.mark.asyncio
 async def test_create_application_with_attachment(
-    client: AsyncClient, session: AsyncSession
+    client: AsyncClient, session: AsyncSession, test_settings: Settings
 ) -> None:
     """Test creating an application with a file attachment."""
     # Arrange
@@ -54,13 +54,10 @@ async def test_create_application_with_attachment(
     assert attachment.filename == file_name
     assert attachment.mime_type == "text/plain"
 
-    # Verify file on disk
-    attachment_path = Path(attachment.filepath)
+    # Verify file on disk (attachment.filepath is relative to project_root)
+    attachment_path = test_settings.project_root / attachment.filepath
     assert attachment_path.exists()
     assert attachment_path.read_bytes() == file_content
-
-    # Clean up the created file
-    attachment_path.unlink()
 
 
 @pytest.mark.asyncio
@@ -139,11 +136,6 @@ async def test_get_attachment(client: AsyncClient, session: AsyncSession) -> Non
     assert response.content == file_content
     assert response.headers["content-type"] == "text/plain; charset=utf-8"
 
-    # Clean up the created file
-    attachment_path = Path(attachment.filepath)
-    if attachment_path.exists():
-        attachment_path.unlink()
-
 
 @pytest.mark.asyncio
 async def test_get_attachment_invalid_token(
@@ -175,11 +167,6 @@ async def test_get_attachment_invalid_token(
 
     # Assert
     assert response.status_code == HTTPStatus.NOT_FOUND
-
-    # Clean up
-    attachment_path = Path(attachment.filepath)
-    if attachment_path.exists():
-        attachment_path.unlink()
 
 
 @pytest.mark.asyncio
@@ -233,11 +220,6 @@ async def test_get_attachment_wrong_application(
     assert response.status_code == HTTPStatus.NOT_FOUND
     assert response.json()["detail"] == "Attachment not found."
 
-    # Clean up
-    attachment_path = Path(attachment_app1.filepath)
-    if attachment_path.exists():
-        attachment_path.unlink()
-
 
 @pytest.mark.asyncio
 async def test_archive_and_vote_details_include_attachments(
@@ -271,7 +253,6 @@ async def test_archive_and_vote_details_include_attachments(
     assert "attachments" in app_in_archive
     assert len(app_in_archive["attachments"]) == 1
     assert app_in_archive["attachments"][0]["filename"] == file_name
-    attachment_id = app_in_archive["attachments"][0]["id"]
 
     # --- Test /vote/{token} ---
     vote_result = await session.execute(
@@ -287,12 +268,3 @@ async def test_archive_and_vote_details_include_attachments(
     assert "attachments" in vote_data["application"]
     assert len(vote_data["application"]["attachments"]) == 1
     assert vote_data["application"]["attachments"][0]["filename"] == file_name
-
-    # --- Cleanup ---
-    attachment_result = await session.execute(
-        select(Attachment).where(Attachment.id == attachment_id)
-    )
-    attachment = attachment_result.scalar_one()
-    attachment_path = Path(attachment.filepath)
-    if attachment_path.exists():
-        attachment_path.unlink()
