@@ -6,10 +6,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-01-23
+
 ### Added
 
 - Time stamps recording the time of application creation and conclusion.
 - Time stamps recording the exact time of individual voting casts.
+
+### Changed
+
+- Make email configuration to be service-agnostic
 
 ## [0.3.0] - 2025-11-12
 
@@ -36,7 +42,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Historical record of all funding applications and their outcomes.
 - German localization for the user interface.
 
-[Unreleased]: git@github.com:andreas-vester/ProjectVote/compare/0.3.0...master
+[Unreleased]: git@github.com:andreas-vester/ProjectVote/compare/0.4.0...master
+[0.4.0]: git@github.com:andreas-vester/ProjectVote/compare/0.3.0...0.4.0
 [0.3.0]: git@github.com:andreas-vester/ProjectVote/compare/0.2.0...0.3.0
 [0.2.0]: git@github.com:andreas-vester/ProjectVote/compare/0.1.0...0.2.0
 [0.1.0]: git@github.com:andreas-vester/ProjectVote/tree/0.1.0
