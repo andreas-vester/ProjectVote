@@ -29,17 +29,10 @@ def get_mailer(settings: Settings) -> FastMail:
     Raises
     ------
     ValueError
-        If the MAIL_PASSWORD environment variable is not set for non-console drivers.
+        If the MAIL_PASSWORD environment variable is not set for SMTP driver.
 
     """
-    # For local development with MailHog, we don't need credentials or cert validation
-    is_mailhog = settings.mail_server in ["localhost", "ds716.local", "10.10.2.11"]
-
-    if (
-        settings.mail_driver != "console"
-        and not is_mailhog
-        and not settings.mail_password
-    ):
+    if settings.mail_driver == "smtp" and not settings.mail_password:
         raise ValueError(
             "MAIL_PASSWORD environment variable must be set for smtp driver."
         )
@@ -57,8 +50,8 @@ def get_mailer(settings: Settings) -> FastMail:
         MAIL_STARTTLS=settings.mail_starttls,
         MAIL_SSL_TLS=settings.mail_ssl_tls,
         MAIL_FROM_NAME=settings.mail_from_name,
-        USE_CREDENTIALS=not is_mailhog,
-        VALIDATE_CERTS=not is_mailhog,
+        USE_CREDENTIALS=True,
+        VALIDATE_CERTS=True,
         TEMPLATE_FOLDER=Path("./src/projectvote/backend/templates/email"),
     )
     return FastMail(conf)

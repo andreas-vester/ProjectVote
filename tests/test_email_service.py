@@ -35,17 +35,6 @@ async def test_send_email(mocker: MockerFixture) -> None:
     assert mock_send.call_args[1]["template_name"] == template_name
 
 
-def test_get_mailer_with_ds716_local() -> None:
-    """Test get_mailer with ds716.local server (another mailhog variant)."""
-    settings = Settings(
-        board_members="test@example.com",
-        mail_server="ds716.local",
-        mail_driver="smtp",
-    )
-    mailer = get_mailer(settings)
-    assert mailer is not None
-
-
 def test_get_mailer_with_password() -> None:
     """Test get_mailer when password is provided."""
     settings = Settings(
@@ -58,8 +47,8 @@ def test_get_mailer_with_password() -> None:
     assert mailer is not None
 
 
-def test_get_mailer_without_password_non_mailhog() -> None:
-    """Test get_mailer raises ValueError when password is missing."""
+def test_get_mailer_without_password_smtp() -> None:
+    """Test get_mailer raises ValueError when password is missing for SMTP driver."""
     settings = Settings(
         board_members="test@example.com",
         mail_server="smtp.gmail.com",

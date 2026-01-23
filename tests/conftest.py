@@ -7,6 +7,7 @@ from typing import Any
 import pytest
 import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
+from pydantic import SecretStr
 from pytest_mock import MockerFixture
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
@@ -32,12 +33,6 @@ test_db_path.parent.mkdir(parents=True, exist_ok=True)
 
 test_engine = create_async_engine(TEST_DB_URL, echo=False)
 TestSessionLocal = async_sessionmaker(bind=test_engine, expire_on_commit=False)
-
-
-@pytest.fixture(scope="session")
-def asyncio_backend_options() -> dict[str, bool]:
-    """Configure asyncio backend for pytest."""
-    return {"close_loop": True}
 
 
 @pytest_asyncio.fixture(scope="session", autouse=True)
@@ -83,7 +78,11 @@ async def client_fixture(
         return TEST_BOARD_MEMBERS
 
     def get_overridden_settings() -> Settings:
-        settings_data: dict[str, Any] = {"board_members": ",".join(TEST_BOARD_MEMBERS)}
+        settings_data: dict[str, Any] = {
+            "board_members": ",".join(TEST_BOARD_MEMBERS),
+            "mail_driver": "console",
+            "mail_password": SecretStr("test-password"),
+        }
         if settings_override:
             settings_data.update(settings_override)
         return Settings(**settings_data)
