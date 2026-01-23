@@ -738,6 +738,11 @@ class TestVotingScenarios:
         else:
             assert updated_app.concluded_at is not None
 
+    @pytest.mark.settings_override(
+        {
+            "send_automatic_confirmation_email": True,
+        }
+    )
     @pytest.mark.asyncio
     async def test_all_votes_approve(
         self, client: AsyncClient, session: AsyncSession, mocker: MockerFixture
@@ -1274,7 +1279,12 @@ class TestArchive:
 class TestEmailFunctionality:
     """Tests for email sending and related utilities."""
 
-    @pytest.mark.settings_override({"send_automatic_rejection_email": True})
+    @pytest.mark.settings_override(
+        {
+            "send_automatic_confirmation_email": True,
+            "send_automatic_rejection_email": True,
+        }
+    )
     @pytest.mark.parametrize(
         argnames=("scenario", "votes", "expected_status"),
         argvalues=[
@@ -1408,6 +1418,7 @@ class TestEmailFunctionality:
     @pytest.mark.asyncio
     @pytest.mark.parametrize(
         argnames=(
+            "send_automatic_confirmation_email",
             "send_automatic_rejection_email",
             "vote_decision",
             "expected_status",
@@ -1415,33 +1426,71 @@ class TestEmailFunctionality:
             "test_id",
         ),
         argvalues=[
+            # Approval scenarios
             (
+                True,
+                True,
+                VoteOption.APPROVE,
+                ApplicationStatus.APPROVED,
+                True,
+                "approval_email_enabled",
+            ),
+            (
+                False,
+                True,
+                VoteOption.APPROVE,
+                ApplicationStatus.APPROVED,
+                False,
+                "approval_email_disabled",
+            ),
+            (
+                True,
+                False,
+                VoteOption.APPROVE,
+                ApplicationStatus.APPROVED,
+                True,
+                "approval_email_enabled_rejection_disabled",
+            ),
+            (
+                False,
+                False,
+                VoteOption.APPROVE,
+                ApplicationStatus.APPROVED,
+                False,
+                "approval_email_disabled_rejection_disabled",
+            ),
+            # Rejection scenarios
+            (
+                True,
                 True,
                 VoteOption.REJECT,
                 ApplicationStatus.REJECTED,
-                1,
+                True,
                 "rejection_email_enabled",
             ),
             (
+                True,
                 False,
                 VoteOption.REJECT,
                 ApplicationStatus.REJECTED,
-                0,
+                False,
                 "rejection_email_disabled",
             ),
             (
+                False,
                 True,
-                VoteOption.APPROVE,
-                ApplicationStatus.APPROVED,
-                1,
-                "approval_email_rejection_enabled",
+                VoteOption.REJECT,
+                ApplicationStatus.REJECTED,
+                True,
+                "rejection_email_enabled_confirmation_disabled",
             ),
             (
                 False,
-                VoteOption.APPROVE,
-                ApplicationStatus.APPROVED,
-                1,
-                "approval_email_rejection_disabled",
+                False,
+                VoteOption.REJECT,
+                ApplicationStatus.REJECTED,
+                False,
+                "rejection_email_disabled_confirmation_disabled",
             ),
         ],
     )
@@ -1451,13 +1500,20 @@ class TestEmailFunctionality:
         client: AsyncClient,
         session: AsyncSession,
         mocker: MockerFixture,
+        send_automatic_confirmation_email: bool,
         send_automatic_rejection_email: bool,
         vote_decision: VoteOption,
         expected_status: ApplicationStatus,
         expected_applicant_emails: int,
         test_id: str,
     ) -> None:
-        """Test sending final decision emails based on settings and outcome."""
+        """Test sending final decision emails based on settings and outcome.
+
+        This test verifies that:
+        1. Approval emails are only sent when send_automatic_confirmation_email is True
+        2. Rejection emails are only sent when send_automatic_rejection_email is True
+        3. Board members always receive final decision emails regardless of settings
+        """
         send_email_mock = mocker.patch(
             "projectvote.backend.main.send_email", new_callable=mocker.AsyncMock
         )
@@ -1465,6 +1521,7 @@ class TestEmailFunctionality:
         # Override settings for this test
         app.dependency_overrides[get_app_settings] = lambda: Settings(
             board_members=",".join(TEST_BOARD_MEMBERS),
+            send_automatic_confirmation_email=send_automatic_confirmation_email,
             send_automatic_rejection_email=send_automatic_rejection_email,
         )
 

@@ -271,9 +271,12 @@ async def send_final_decision_emails(
     }
 
     # --- Email to Applicant ---
-    if not (
+    if (
+        application.status == ApplicationStatus.APPROVED
+        and settings.send_automatic_confirmation_email
+    ) or (
         application.status == ApplicationStatus.REJECTED
-        and not settings.send_automatic_rejection_email
+        and settings.send_automatic_rejection_email
     ):
         await send_email(
             recipients=[application.applicant_email],
