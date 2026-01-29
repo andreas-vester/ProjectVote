@@ -10,7 +10,9 @@ Test Organization:
 - TestUtilities: Helper functions and edge cases
 """
 
+import datetime as dt
 from http import HTTPStatus
+from zoneinfo import ZoneInfo
 
 import pytest
 from _pytest.outcomes import Failed
@@ -26,6 +28,7 @@ from projectvote.backend.main import (
     format_datetime_for_email,
     get_app_settings,
     get_board_members,
+    get_now,
 )
 from projectvote.backend.models import (
     Application,
@@ -1579,3 +1582,58 @@ class TestEmailFunctionality:
         """Test that format_datetime_for_email returns 'N/A' when timestamp is None."""
         result = format_datetime_for_email(None)
         assert result == "N/A"
+
+    def test_format_datetime_for_email_berlin_timezone(self) -> None:
+        """Test format_datetime_for_email with Berlin timezone (default)."""
+        # Create a UTC timestamp
+        utc_time = dt.datetime(2026, 1, 29, 12, 0, 0, tzinfo=ZoneInfo("UTC"))
+        result = format_datetime_for_email(utc_time)
+        # Berlin is UTC+1, so 12:00 UTC = 13:00 Berlin
+        assert "13:00" in result
+        assert "29.01.2026" in result
+
+    @pytest.mark.parametrize(
+        ("timezone", "expected_time"),
+        [
+            ("Europe/London", "12:00"),  # UTC+0 in January
+            ("America/New_York", "07:00"),  # UTC-5 in January
+            ("Asia/Tokyo", "21:00"),  # UTC+9
+            ("Europe/Berlin", "13:00"),  # UTC+1 in January
+        ],
+    )
+    def test_format_datetime_for_email_various_timezones(
+        self, timezone: str, expected_time: str
+    ) -> None:
+        """Test format_datetime_for_email with various timezones."""
+        settings = Settings(tz=timezone, board_members="test@example.com")
+        utc_time = dt.datetime(2026, 1, 29, 12, 0, 0, tzinfo=ZoneInfo("UTC"))
+        result = format_datetime_for_email(utc_time, settings)
+        assert expected_time in result
+        assert "29.01.2026" in result
+
+    def test_format_datetime_for_email_naive_timestamp(self) -> None:
+        """Test format_datetime_for_email with naive (non-timezone-aware) timestamp."""
+        # Create a naive timestamp (assumed to be UTC)
+        naive_time = dt.datetime(2026, 1, 29, 12, 0, 0)  # noqa: DTZ001
+        settings = Settings(tz="Europe/Berlin", board_members="test@example.com")
+        result = format_datetime_for_email(naive_time, settings)
+        # Should convert naive time assuming UTC, then to Berlin (UTC+1)
+        assert "13:00" in result
+        assert "29.01.2026" in result
+
+    @pytest.mark.parametrize(
+        "timezone",
+        ["Europe/Berlin", "America/Los_Angeles", "UTC", "Asia/Tokyo"],
+    )
+    def test_get_now_with_timezone(self, timezone: str) -> None:
+        """Test get_now returns current time in configured timezone."""
+        settings = Settings(tz=timezone, board_members="test@example.com")
+        now = get_now(settings)
+        assert now.tzinfo is not None
+        assert str(now.tzinfo) == timezone
+
+    def test_get_now_default_timezone(self) -> None:
+        """Test get_now returns current time in default Berlin timezone."""
+        now = get_now()
+        assert now.tzinfo is not None
+        assert str(now.tzinfo) == "Europe/Berlin"
