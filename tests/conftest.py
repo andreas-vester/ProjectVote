@@ -30,7 +30,7 @@ EMAILS_SENT_FOR_FINAL_DECISION = 5
 # Setup a test database engine
 # Using a single test DB for the whole test suite.
 TEST_DB_URL = "sqlite+aiosqlite:///./data/test_applications.db"
-test_db_path = Path(TEST_DB_URL.split("///")[-1])
+test_db_path = Path(TEST_DB_URL.rsplit("///", maxsplit=1)[-1])
 test_db_path.parent.mkdir(parents=True, exist_ok=True)
 
 test_engine = create_async_engine(TEST_DB_URL, echo=False)
