@@ -369,7 +369,7 @@ async def _check_and_finalize_voting(
         new_status = ApplicationStatus.REJECTED
 
     if new_status:
-        application.status = ApplicationStatus(new_status.value)
+        application.status = new_status
         # Store concluded_at as UTC now so it can be converted correctly for emails
         application.concluded_at = dt.datetime.now(ZoneInfo("UTC"))
         await db.commit()
@@ -513,8 +513,8 @@ async def cast_vote(
         raise HTTPException(status_code=400, detail="Vote has already been cast.")
 
     # Update vote record
-    vote_record.vote = vote_data.decision.value
-    vote_record.vote_status = VoteStatus.CAST.value  # type: ignore[attr-defined]
+    vote_record.vote = vote_data.decision
+    vote_record.vote_status = VoteStatus.CAST
     vote_record.voted_at = get_now()
     await db.commit()
 
