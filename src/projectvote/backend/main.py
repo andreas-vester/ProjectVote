@@ -18,7 +18,6 @@ from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
-from sqlalchemy.sql import func
 
 from .config import Settings
 from .database import DATABASE_URL, engine, get_db
@@ -102,10 +101,9 @@ def get_configured_timezone() -> ZoneInfo:
     return ZoneInfo("Europe/Berlin")
 
 
-def get_now(settings: Settings | None = None) -> dt.datetime:
-    """Get current time in configured timezone (or Berlin as default)."""
-    tz = get_configured_timezone() if settings is None else ZoneInfo(settings.tz)
-    return dt.datetime.now(tz)
+def get_now() -> dt.datetime:
+    """Get current time in UTC."""
+    return dt.datetime.now(ZoneInfo("UTC"))
 
 
 def format_datetime_for_email(
@@ -116,7 +114,7 @@ def format_datetime_for_email(
         return "N/A"
     # Determine timezone to use
     tz = get_configured_timezone() if settings is None else ZoneInfo(settings.tz)
-    # Ensure the timestamp is timezone-aware and convert to configured timezone
+    # Datetimes from SQLite are naive. We assume they were stored as UTC.
     if timestamp.tzinfo is None:
         timestamp = timestamp.replace(tzinfo=ZoneInfo("UTC"))
     localized_time = timestamp.astimezone(tz)
@@ -372,7 +370,8 @@ async def _check_and_finalize_voting(
 
     if new_status:
         application.status = ApplicationStatus(new_status.value)
-        application.concluded_at = func.now()
+        # Store concluded_at as UTC now so it can be converted correctly for emails
+        application.concluded_at = dt.datetime.now(ZoneInfo("UTC"))
         await db.commit()
         await db.refresh(application)  # Refresh to load the concluded_at value
         await send_final_decision_emails(application, board_members, settings)
@@ -516,7 +515,7 @@ async def cast_vote(
     # Update vote record
     vote_record.vote = vote_data.decision.value
     vote_record.vote_status = VoteStatus.CAST.value  # type: ignore[attr-defined]
-    vote_record.voted_at = get_now(settings)
+    vote_record.voted_at = get_now()
     await db.commit()
 
     # After a vote is cast, check if the voting process is complete.

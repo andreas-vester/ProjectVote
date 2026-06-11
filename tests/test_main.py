@@ -1621,19 +1621,9 @@ class TestEmailFunctionality:
         assert "13:00" in result
         assert "29.01.2026" in result
 
-    @pytest.mark.parametrize(
-        "timezone",
-        ["Europe/Berlin", "America/Los_Angeles", "UTC", "Asia/Tokyo"],
-    )
-    def test_get_now_with_timezone(self, timezone: str) -> None:
-        """Test get_now returns current time in configured timezone."""
-        settings = Settings(tz=timezone, board_members="test@example.com")
-        now = get_now(settings)
-        assert now.tzinfo is not None
-        assert str(now.tzinfo) == timezone
-
-    def test_get_now_default_timezone(self) -> None:
-        """Test get_now returns current time in default Berlin timezone."""
+    def test_get_now_is_utc(self) -> None:
+        """Test that get_now returns a timezone-aware UTC datetime."""
         now = get_now()
         assert now.tzinfo is not None
-        assert str(now.tzinfo) == "Europe/Berlin"
+        # Use str comparison to handle various UTC representations
+        assert str(now.tzinfo) in ("UTC", "UTC+00:00", "ZoneInfo(key='UTC')")

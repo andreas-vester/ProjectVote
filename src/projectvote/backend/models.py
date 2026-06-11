@@ -14,7 +14,6 @@ from sqlalchemy.orm import (
     mapped_column,
     relationship,
 )
-from sqlalchemy.sql import func
 
 Base = declarative_base()
 
@@ -59,7 +58,7 @@ class Application(Base):
         PyEnum(ApplicationStatus), default=ApplicationStatus.PENDING, nullable=False
     )
     created_at: Mapped[dt.datetime] = mapped_column(
-        DateTime, nullable=False, server_default=func.now()
+        DateTime, nullable=False, default=lambda: dt.datetime.now(dt.UTC)
     )
     concluded_at: Mapped[dt.datetime | None] = mapped_column(DateTime, nullable=True)
 
