@@ -10,9 +10,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 - Database migration for fresh deployments ([GH#20](https://github.com/andreas-vester/ProjectVote/issues/20)).
 
+### Changed
+
+- Standardize all database timestamps to UTC and implement localized display based on the configured timezone ([GH#22](https://github.com/andreas-vester/ProjectVote/issues/22)).
+
 ### Added
 
-- Timezone environment variable ([GH#22](https://github.com/andreas-vester/ProjectVote/issues/22)).
+- Timezone configuration setting (`TZ`) to support custom organization locations ([GH#22](https://github.com/andreas-vester/ProjectVote/issues/22)).
 
 ## [0.5.0] - 2026-01-23
 
