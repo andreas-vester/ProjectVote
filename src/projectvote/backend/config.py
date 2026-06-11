@@ -2,7 +2,7 @@
 
 from pathlib import Path
 
-from pydantic import EmailStr, SecretStr, field_validator
+from pydantic import EmailStr, Field, SecretStr, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -36,6 +36,7 @@ class Settings(BaseSettings):
     backend_url: str = "http://localhost:8008"
     send_automatic_confirmation_email: bool = False
     send_automatic_rejection_email: bool = False
+    tz: str = Field(default="Europe/Berlin")
 
     # Database settings
     db_echo: bool = True

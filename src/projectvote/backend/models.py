@@ -14,12 +14,11 @@ from sqlalchemy.orm import (
     mapped_column,
     relationship,
 )
-from sqlalchemy.sql import func
 
 Base = declarative_base()
 
 
-class ApplicationStatus(str, enum.Enum):
+class ApplicationStatus(enum.StrEnum):
     """Enum for the status of an application."""
 
     PENDING = "pending"
@@ -27,7 +26,7 @@ class ApplicationStatus(str, enum.Enum):
     REJECTED = "rejected"
 
 
-class VoteOption(str, enum.Enum):
+class VoteOption(enum.StrEnum):
     """Enum for the options a voter can take."""
 
     APPROVE = "approve"
@@ -35,7 +34,7 @@ class VoteOption(str, enum.Enum):
     ABSTAIN = "abstain"
 
 
-class VoteStatus(str, enum.Enum):
+class VoteStatus(enum.StrEnum):
     """Enum for the status of a vote."""
 
     PENDING = "pending"
@@ -59,7 +58,7 @@ class Application(Base):
         PyEnum(ApplicationStatus), default=ApplicationStatus.PENDING, nullable=False
     )
     created_at: Mapped[dt.datetime] = mapped_column(
-        DateTime, nullable=False, server_default=func.now()
+        DateTime, nullable=False, default=lambda: dt.datetime.now(dt.UTC)
     )
     concluded_at: Mapped[dt.datetime | None] = mapped_column(DateTime, nullable=True)
 

@@ -7,6 +7,7 @@ from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Annotated
+from zoneinfo import ZoneInfo
 
 import aiofiles
 from dotenv import load_dotenv
@@ -17,7 +18,6 @@ from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
-from sqlalchemy.sql import func
 
 from .config import Settings
 from .database import DATABASE_URL, engine, get_db
@@ -96,11 +96,29 @@ def get_board_members(
     return [email.strip() for email in settings.board_members.split(",")]
 
 
-def format_datetime_for_email(timestamp: dt.datetime | None) -> str:
+def get_configured_timezone() -> ZoneInfo:
+    """Return the Berlin timezone (default)."""
+    return ZoneInfo("Europe/Berlin")
+
+
+def get_now() -> dt.datetime:
+    """Get current time in UTC."""
+    return dt.datetime.now(ZoneInfo("UTC"))
+
+
+def format_datetime_for_email(
+    timestamp: dt.datetime | None, settings: Settings | None = None
+) -> str:
     """Format a datetime object into a user-friendly string for emails."""
     if not timestamp:
         return "N/A"
-    return timestamp.strftime("%d.%m.%Y, %H:%M Uhr")
+    # Determine timezone to use
+    tz = get_configured_timezone() if settings is None else ZoneInfo(settings.tz)
+    # Datetimes from SQLite are naive. We assume they were stored as UTC.
+    if timestamp.tzinfo is None:
+        timestamp = timestamp.replace(tzinfo=ZoneInfo("UTC"))
+    localized_time = timestamp.astimezone(tz)
+    return localized_time.strftime("%d.%m.%Y, %H:%M Uhr")
 
 
 # --- Pydantic Models for API data validation ---
@@ -179,7 +197,7 @@ async def send_confirmation_email(application: Application, settings: Settings) 
             "project_title": application.project_title,
             "project_description": application.project_description,
             "costs": application.costs,
-            "created_at": format_datetime_for_email(application.created_at),
+            "created_at": format_datetime_for_email(application.created_at, settings),
             "attachment_filename": application.attachments[0].filename
             if application.attachments
             else None,
@@ -217,7 +235,9 @@ async def send_voting_links(
                 "project_title": application.project_title,
                 "project_description": application.project_description,
                 "costs": application.costs,
-                "created_at": format_datetime_for_email(application.created_at),
+                "created_at": format_datetime_for_email(
+                    application.created_at, settings
+                ),
                 "vote_url": vote_url,
                 "token": vote_record.token,
                 "frontend_url": settings.frontend_url,
@@ -265,8 +285,8 @@ async def send_final_decision_emails(
         "project_description": application.project_description,
         "costs": application.costs,
         "status": german_status,
-        "created_at": format_datetime_for_email(application.created_at),
-        "concluded_at": format_datetime_for_email(application.concluded_at),
+        "created_at": format_datetime_for_email(application.created_at, settings),
+        "concluded_at": format_datetime_for_email(application.concluded_at, settings),
         "frontend_url": settings.frontend_url,
     }
 
@@ -349,8 +369,9 @@ async def _check_and_finalize_voting(
         new_status = ApplicationStatus.REJECTED
 
     if new_status:
-        application.status = ApplicationStatus(new_status.value)
-        application.concluded_at = func.now()
+        application.status = new_status
+        # Store concluded_at as UTC now so it can be converted correctly for emails
+        application.concluded_at = dt.datetime.now(ZoneInfo("UTC"))
         await db.commit()
         await db.refresh(application)  # Refresh to load the concluded_at value
         await send_final_decision_emails(application, board_members, settings)
@@ -492,9 +513,9 @@ async def cast_vote(
         raise HTTPException(status_code=400, detail="Vote has already been cast.")
 
     # Update vote record
-    vote_record.vote = vote_data.decision.value
-    vote_record.vote_status = VoteStatus.CAST.value  # type: ignore[attr-defined]
-    vote_record.voted_at = func.now()
+    vote_record.vote = vote_data.decision
+    vote_record.vote_status = VoteStatus.CAST
+    vote_record.voted_at = get_now()
     await db.commit()
 
     # After a vote is cast, check if the voting process is complete.
