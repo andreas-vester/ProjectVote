@@ -6,17 +6,20 @@ on:
   pull_request:
     branches: [ main ]
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
+
 jobs:
   backend:
     runs-on: ubuntu-latest
     env:
       BOARD_MEMBERS: "test.member1@example.com,test.member2@example.com,test.member3@example.com"
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
     - name: Set up uv
-      uses: astral-sh/setup-uv@v6
+      uses: astral-sh/setup-uv@v8.2.0
     - name: Set up Python
-      uses: actions/setup-python@v5
+      uses: actions/setup-python@v6
       with:
         python-version-file: '.python-version'
     - name: Install dependencies
@@ -36,11 +39,11 @@ jobs:
       run:
         working-directory: ./src/projectvote/frontend
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
     - name: Set up Node.js
-      uses: actions/setup-node@v4
+      uses: actions/setup-node@v6
       with:
-        node-version: '20'
+        node-version: '24'
     - name: Install dependencies
       run: npm install
     - name: Run linter
@@ -57,17 +60,17 @@ jobs:
       packages: write
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Log in to the GitHub Container Registry
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and push backend image
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: .
           file: ./Dockerfile
@@ -75,7 +78,7 @@ jobs:
           tags: ghcr.io/${{ github.repository_owner }}/projectvote-backend:latest
 
       - name: Build and push frontend image
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: ./src/projectvote/frontend
           file: ./src/projectvote/frontend/Dockerfile
