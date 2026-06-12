@@ -1,5 +1,5 @@
 # Stage 1: Build dependencies using the official astral/uv image
-# This image contains Python 3.13 and uv pre-installed.
+# This image contains Python 3.14 and uv pre-installed.
 FROM ghcr.io/astral-sh/uv:python3.14-trixie-slim AS builder
 
 # Set the working directory
@@ -23,7 +23,7 @@ WORKDIR /app
 RUN set -eux; \
     apt-get update; \
     apt-get install -y --no-install-recommends wget; \
-    wget -O /usr/local/bin/gosu "https://github.com/tianon/gosu/releases/download/1.17/gosu-$(dpkg --print-architecture | awk -F- '{print $NF}')"; \
+    wget -O /usr/local/bin/gosu "https://github.com/tianon/gosu/releases/download/1.19/gosu-$(dpkg --print-architecture | awk -F- '{print $NF}')"; \
     chmod +x /usr/local/bin/gosu; \
     # Verify that gosu is installed and works
     gosu --version; \
