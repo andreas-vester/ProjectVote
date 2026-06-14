@@ -6,13 +6,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
-### Fix
-
-- Database migration for fresh deployments ([GH#20](https://github.com/andreas-vester/ProjectVote/issues/20)).
-
 ### Changed
 
+- Database migration for fresh deployments ([GH#20](https://github.com/andreas-vester/ProjectVote/issues/20)).
+- Ensure ownership change runs after migrations so database files created
+	during `alembic upgrade head` are owned by `appuser`, preventing
+	"readonly database" errors when the app runs as a non-root user ([GH#25](https://github.com/andreas-vester/ProjectVote/issues/25)).
 - Standardize all database timestamps to UTC and implement localized display based on the configured timezone ([GH#22](https://github.com/andreas-vester/ProjectVote/issues/22)).
+- Allow larger attachment uploads through the frontend nginx proxy by increasing `client_max_body_size`, preventing `413 Request Entity Too Large` failures for PDF attachments.
 
 ### Added
 
