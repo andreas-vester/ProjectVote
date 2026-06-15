@@ -1,12 +1,12 @@
 [project]
 name = "projectvote"
-version = "0.5.0"
+version = "0.6.0"
 description = "Containerized application designed to simplify the entire funding application lifecycle."
 readme = "README.md"
 keywords = ["funding", "application", "management", "voting", "workflow", "fastapi", "python", "docker"]
 classifiers = [
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
     "Development Status :: 3 - Alpha",
@@ -20,29 +20,29 @@ classifiers = [
 license = {file = "LICENSE"}
 requires-python = ">=3.13"
 dependencies = [
-    "aiofiles>=23.2.1",
-    "aiosqlite>=0.21.0",
-    "alembic>=1.13.1",
-    "fastapi-mail>=1.5.0",
-    "fastapi>=0.115.14",
-    "httpx>=0.28.1",
-    "jinja2>=3.1.6",
-    "pydantic>=2.11.7",
-    "python-multipart>=0.0.9",
-    "sqlalchemy>=2.0.41",
-    "uvicorn>=0.35.0",
+    "aiofiles",
+    "aiosqlite",
+    "alembic",
+    "fastapi-mail",
+    "fastapi",
+    "httpx",
+    "jinja2",
+    "pydantic",
+    "python-multipart",
+    "sqlalchemy",
+    "uvicorn",
 ]
 
 [dependency-groups]
 dev = [
-    "pre-commit>=4.2.0",
-    "pytest>=9.0.0",
-    "pytest-asyncio>=1.0.0",
-    "pytest-cov>=6.2.1",
-    "pytest-mock>=3.14.1",
-    "python-kacl>=0.6.7",
-    "ruff>=0.12.8",
-    "ty>=0.0.1a17",
+    "pre-commit",
+    "pytest",
+    "pytest-asyncio",
+    "pytest-cov",
+    "pytest-mock",
+    "python-kacl",
+    "ruff",
+    "ty",
 ]
 
 [project.urls]
