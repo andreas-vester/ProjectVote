@@ -183,3 +183,17 @@ export const getAttachmentUrl = (token: string, attachmentId: number): string =>
 export const getPublicAttachmentUrl = (attachmentId: number): string => {
   return `/api/attachments/${attachmentId}`;
 };
+
+/**
+ * Fetches the application version from the backend.
+ * @returns The version string.
+ */
+export const getVersion = async (): Promise<string> => {
+  try {
+    const response = await apiClient.get<{ version: string }>('/version');
+    return response.data.version;
+  } catch (error) {
+    console.error('Error fetching version:', error);
+    return 'unknown';
+  }
+};

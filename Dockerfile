@@ -40,6 +40,7 @@ COPY src/ ./src/
 # Copy alembic configuration and migration scripts
 COPY alembic/ ./alembic/
 COPY alembic.ini .
+COPY pyproject.toml .
 
 # Add the virtual environment's executables to the PATH
 ENV PATH="/app/.venv/bin:$PATH"

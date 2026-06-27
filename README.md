@@ -108,6 +108,58 @@ The application should now be running. Docker Compose will pull the latest image
 
 We welcome contributions to ProjectVote! If you're interested in fixing bugs, adding new features, or improving the documentation, please see our [CONTRIBUTING.md](CONTRIBUTING.md) file for details.
 
+### Local Development (without Docker)
+
+If you want to run the project natively on your machine for development:
+
+1. **Prerequisites**: Make sure you have [uv](https://docs.astral.sh/uv/) installed for Python dependency management, and Node.js (with npm) for the frontend.
+2. **Setup**:
+   - Install Python dependencies and create a virtual environment:
+     ```bash
+     uv sync
+     ```
+   - Install frontend dependencies:
+     ```bash
+     cd src/projectvote/frontend
+     npm install
+     ```
+3. **Running the Frontend**:
+   ```bash
+   cd src/projectvote/frontend
+   npm run dev
+   ```
+   *This starts the Vite dev server at http://localhost:5173 (with an API proxy pointing to http://localhost:8008).*
+4. **Running the Backend**:
+   From the project root:
+   ```bash
+   PYTHONPATH=src uv run uvicorn projectvote.backend.main:app --reload --port 8008
+   ```
+   *This starts the FastAPI server at http://localhost:8008.*
+
+### Debugging with VS Code
+
+To debug the backend natively in VS Code, add the following configuration to your `.vscode/launch.json`:
+
+```json
+{
+    "name": "Python: FastAPI Local",
+    "type": "debugpy",
+    "request": "launch",
+    "module": "uvicorn",
+    "args": [
+        "projectvote.backend.main:app",
+        "--port",
+        "8008",
+        "--reload"
+    ],
+    "env": {
+        "PYTHONPATH": "src"
+    },
+    "jinja": true
+}
+```
+Select **Python: FastAPI Local** in the Run & Debug view and press **F5** to start.
+
 ## Configuration
 
 To provide a clearer picture of the setup, here are the contents of the main configuration files.
