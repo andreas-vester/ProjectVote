@@ -2,6 +2,7 @@
 
 import datetime as dt
 import os
+import tomllib
 import uuid
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
@@ -628,3 +629,25 @@ async def get_applications_archive(
     applications = result.scalars().unique().all()
 
     return [ApplicationOut.model_validate(app) for app in applications]
+
+
+def load_version() -> str:
+    """Load application version from pyproject.toml."""
+    try:
+        pyproject_path = (
+            Path(__file__).resolve().parent.parent.parent.parent / "pyproject.toml"
+        )
+        with pyproject_path.open("rb") as f:
+            data = tomllib.load(f)
+            return data.get("project", {}).get("version", "unknown")
+    except (OSError, tomllib.TOMLDecodeError):
+        return "unknown"
+
+
+APP_VERSION = load_version()
+
+
+@app.get("/version")
+async def get_version() -> dict[str, str]:
+    """Return the application version from pyproject.toml."""
+    return {"version": APP_VERSION}
