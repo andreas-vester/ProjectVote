@@ -14,7 +14,7 @@ from dotenv import load_dotenv
 from fastapi import Depends, FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -151,6 +151,14 @@ class VoteOut(BaseModel):
     decision: VoteOption | None = Field(validation_alias="vote")
     voted_at: dt.datetime | None
 
+    @field_validator("voted_at", mode="after")
+    @classmethod
+    def make_voted_at_utc(cls, v: dt.datetime | None) -> dt.datetime | None:
+        """Ensure naive voted_at datetimes are treated as UTC."""
+        if v is not None and v.tzinfo is None:
+            return v.replace(tzinfo=dt.UTC)
+        return v
+
 
 class AttachmentOut(BaseModel):
     """Schema for displaying an attachment."""
@@ -179,6 +187,14 @@ class ApplicationOut(BaseModel):
     concluded_at: dt.datetime | None
     votes: list[VoteOut]
     attachments: list[AttachmentOut] = []
+
+    @field_validator("created_at", "concluded_at", mode="after")
+    @classmethod
+    def make_datetimes_utc(cls, v: dt.datetime | None) -> dt.datetime | None:
+        """Ensure naive datetimes are treated as UTC."""
+        if v is not None and v.tzinfo is None:
+            return v.replace(tzinfo=dt.UTC)
+        return v
 
 
 # --- Email Sending Functions ---
