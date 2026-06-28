@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.6.1] - 2026-06-28
+
+### Fixed
+
+- Archive shows UTC times instead of local time (frontend) ([GH#28](https://github.com/andreas-vester/ProjectVote/issues/28)).
+
 ## [0.6.0] - 2026-06-15
 
 ### Changed
@@ -62,7 +68,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Historical record of all funding applications and their outcomes.
 - German localization for the user interface.
 
-[Unreleased]: git@github.com:andreas-vester/ProjectVote/compare/0.6.0...master
+[Unreleased]: git@github.com:andreas-vester/ProjectVote/compare/0.6.1...master
+[0.6.1]: git@github.com:andreas-vester/ProjectVote/compare/0.6.0...0.6.1
 [0.6.0]: git@github.com:andreas-vester/ProjectVote/compare/0.5.0...0.6.0
 [0.5.0]: git@github.com:andreas-vester/ProjectVote/compare/0.4.0...0.5.0
 [0.4.0]: git@github.com:andreas-vester/ProjectVote/compare/0.3.0...0.4.0
