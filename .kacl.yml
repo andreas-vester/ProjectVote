@@ -19,10 +19,10 @@ kacl:
   release:
     add_unreleased: True
   git:
-    commit: True
+    commit: False
     commit_message: "chore: Releasing Changelog version v{new_version}"
     commit_additional_files: []
-    tag: True
+    tag: False
     tag_name: "v{new_version}"
     tag_description: "Version v{new_version} released"
   links:

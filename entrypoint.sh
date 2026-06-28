@@ -17,12 +17,18 @@ if [ $? -ne 0 ]; then
 fi
 echo "Database migrations completed successfully"
 
-# 2. Set ownership of the data directory to the appuser.
-#    This ensures that all files (including newly created DB during migration)
-#    are writable by the application.
-chown -R appuser:appuser /app/data
+# 2. Use the host UID/GID from environment variables.
+#    This must be provided explicitly in `.env`.
+if [ -z "$APP_USER_UID" ] || [ -z "$APP_USER_GID" ]; then
+    echo "APP_USER_UID and APP_USER_GID must be set" >&2
+    exit 1
+fi
 
-# 3. Execute the main command (CMD) passed to the container.
+# 3. Set ownership of the data directory to the provided IDs.
+#    This keeps bind-mounted files writable by the matching host user.
+chown -R "$APP_USER_UID:$APP_USER_GID" /app/data
+
+# 4. Execute the main command (CMD) passed to the container.
 #    `gosu` is a lightweight tool for dropping privileges.
-#    This command runs the uvicorn server as the `appuser`.
-exec gosu appuser "$@"
+#    This command runs the process as the provided UID/GID.
+exec gosu "$APP_USER_UID:$APP_USER_GID" "$@"

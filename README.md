@@ -208,13 +208,22 @@ The application uses a SQLite database to store application data.
 
 ### Location and Persistence
 
-The database is stored in the `data` directory at the root of the project. This is achieved using a bind mount in `docker-compose.yml`, which maps the `./data` directory on your host machine to the `/app/data` directory inside the `backend` container.
+The application stores the database in the host `./data` directory, which is bind-mounted into the backend container at `/app/data`.
 
-This ensures the database file (`applications.db`) is directly accessible on your filesystem and persists across container restarts.
+When using a bind mount, Docker maps the container user's UID/GID to the host filesystem. To keep files owned by your host user, set `APP_USER_UID` and `APP_USER_GID` in `.env` to the host UID/GID of the user running Docker.
+
+For example:
+
+```env
+APP_USER_UID=1009
+APP_USER_GID=1009
+```
+
+This makes container-written files appear owned by the same user on the host, while allowing the backend to keep using `./data/applications.db` directly.
 
 ### Accessing the Database
 
-Since the database file is on your host machine at `data/applications.db`, you can open it using any standard SQLite database tool. There is no need to connect to the running container.
+The database file is available on the host at `./data/applications.db`, so you can open it with any SQLite tool.
 
 ## License
 
